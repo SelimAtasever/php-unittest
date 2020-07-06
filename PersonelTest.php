@@ -72,7 +72,7 @@ class SelimTest extends TestCase {
 	} 
 
 
-	public function testLastNameCantComtaimSpeacialCharacters() {
+	public function testLastNameCantComtaimSpeacialCharacters(){
 
 		$this->expectException(PersonnelLastnameForbiddenCharacterException::class);
 
@@ -103,7 +103,7 @@ class SelimTest extends TestCase {
 	}
 
 
-	public function testTcNoCantBeNanCharacter () {
+	public function testTcNoCantBeNanCharacter (){
 
 		$this->expectException(PersonnelTcnoNANCharacterException::class);
 
