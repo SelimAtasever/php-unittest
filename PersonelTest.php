@@ -42,7 +42,7 @@ class SelimTest extends TestCase {
    }
 
 
-	public function testPersonnelEmailCantBeLongerThan64() {
+	public function testPersonnelEmailCantBeLongerThan64(){
 		
 		$this->expectException(PersonnelEmailLengthException::class);
 
@@ -69,7 +69,7 @@ class SelimTest extends TestCase {
 
 			$this->throwFromExceptionCollection($w, PersonnelEmailLengthException::class);
 		}
-	}
+	} 
 
 
 	public function testLastNameCantComtaimSpeacialCharacters() {
