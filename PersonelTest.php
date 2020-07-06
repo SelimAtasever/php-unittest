@@ -270,7 +270,6 @@ class SelimTest extends TestCase {
 			$this->throwFromExceptionCollection($e, PersonnelPhoneIsNullException::class);
 		}
 
-		//$this->assertNotNull($personel->getPhone());
 	}
 
 	private function throwFromExceptionCollection($exception_collection, $exception) {
