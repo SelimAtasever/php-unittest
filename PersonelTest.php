@@ -36,13 +36,13 @@ class SelimTest extends TestCase {
             '11223344556', 
             '0049224591432', 
             'john-doe@mail.com', 
-            null, 
+            null,
             null
        );
    }
 
 
-	public function testPersonnelEmailCantBeLongerThan64(){
+	public function testPersonnelEmailCantBeLongerThan64() {
 		
 		$this->expectException(PersonnelEmailLengthException::class);
 
