@@ -10,12 +10,7 @@ use model\IdentityAndAccess\domain\model\Role;
 use model\common\domain\model\SubmoduleId;
 use model\IdentityAndAccess\domain\model\Privilege;
 
-/*
-* personnel isActive degilse tumu false donmeli
-* role null ise tumu false donmeli
-* role icerisinde submodule_id ye denk gelen bir privilege yoksa tumu false donmeli
-* 
-*/
+
 
 class AuthorizationDomainServiceTest extends TestCase {
 
@@ -259,9 +254,6 @@ class AuthorizationDomainServiceTest extends TestCase {
 
     	$this->assertFalse($authorization_domain_service->canDelete($personnel, $role, new SubmoduleId(3))); 
     }
-
-
-
 
 }
 
