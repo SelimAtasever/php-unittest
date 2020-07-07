@@ -65,7 +65,7 @@ class PersonnelDomainServiceTest extends TestCase {
 	}
 
 
-	public function testPhoneCannotBeDuplicateOnRegister() {
+	public function testPhoneCannotBeDuplicateOnRegister(){
 
 		$this->expectException(PersonnelPhoneIsNotUniqueException::class);
 
