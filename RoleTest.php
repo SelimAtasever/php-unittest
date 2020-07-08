@@ -22,6 +22,7 @@ class RoleTest extends TestCase {
 
 	}
 
+
 	public function testRoleCanBeRenamed() {
 
 		$role = new Role(new RoleId(1) ,'ornek');
@@ -103,7 +104,6 @@ class RoleTest extends TestCase {
 
 	}
 
-
 	public function testIfRolesArentEqualReturnFalse() {
 
 		$role = new Role(new RoleId(2), 'role');
@@ -111,6 +111,7 @@ class RoleTest extends TestCase {
 		$role2 = new Role(new RoleId(1), 'test');
 
 		$this->assertNotTrue($role->equals($role2));
+
 
 	}
 
