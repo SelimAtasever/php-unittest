@@ -22,7 +22,6 @@ class RoleTest extends TestCase {
 
 	}
 
-
 	public function testRoleCanBeRenamed() {
 
 		$role = new Role(new RoleId(1) ,'ornek');
