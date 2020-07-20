@@ -159,6 +159,25 @@ class DbLogin extends TestCase {
 
 
     }
+	
+    public function testAddLoginPasswordCannotBeShorterThan6() {
+
+        $this->expectException(PasswordLengthException::class);
+
+        $login = new login();
+
+        $login->addLogin(8, '134', true);
+
+    }
+
+    public function testAddLoginPasswordCannotBeLongerThan32() {
+
+        $this->expectException(PasswordLengthException::class);
+
+        $login = new login();
+
+        $login->addLogin(9, str_repeat(3, 33), true);
+    }
 
 
  }
