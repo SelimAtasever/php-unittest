@@ -139,6 +139,18 @@ class DbSessionTest extends TestCase {
 
 
 	}
+	
+	public function testIfEndSessionDeletesTheExistingSession() {
+
+		$session_check = new Session();
+
+		$session_check->startSession(6, '2.2.1.1');
+
+		$session_check->endSession(6);
+
+		$check_db = self::$db->query("SELECT * FROM session WHERE personnel_id = '6'")->row;
+
+		$this->assertEmpty($check_db);
 
 }
 
