@@ -10,7 +10,7 @@ use \model\common\domain\model\ModuleId;
 use \model\common\domain\model\Module;
 use \model\common\application\DTO\SubmoduleDTO;
 use \model\common\application\DTO\ModuleDTO;
-use model\common\application\exception\SubmoduleNotFoundException;
+
 
 use PHPUnit\Framework\TestCase;
 
@@ -66,9 +66,6 @@ class SubmoduleServiceTest extends TestCase {
 		$this->assertTrue($check_submodule);
 
 	}
-
-
-
 
 }
 
