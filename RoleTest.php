@@ -46,7 +46,7 @@ class RoleTest extends TestCase {
 	}
 
 
-	public function testAddPrivilegeCanAddPrivilege() {
+	public function testAddPrivilegeCanCreateNewPrivilege() {
 
 		
 		$role = new Role(new RoleId(1), 'testrole');
@@ -94,7 +94,7 @@ class RoleTest extends TestCase {
 	}
 
 
-	public function testRolesAreEqualOrNot() {
+	public function testEqualsReturnsTrueIfRoleIdsAreSame() {
 
 		$role = new Role(new RoleId(1), '-role-');
 
@@ -104,7 +104,7 @@ class RoleTest extends TestCase {
 
 	}
 
-	public function testIfRolesArentEqualReturnFalse() {
+	public function testEqualsReturnsFalseIfRoleIdsAreDifferent() {
 
 		$role = new Role(new RoleId(2), 'role');
 
