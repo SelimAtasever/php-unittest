@@ -153,27 +153,39 @@ class ProcedureTest extends TestCase {
 		$return_attachment = $procedure->addAttachment(new StepId(2), new AttachmentId(1), new PersonnelId(1), 'base64','attachment name');
 		$this->assertEquals(new StepId(2), $return_attachment->stepId());
 	}
+	
 
 	public function test_If_advance_Method_Sorts_Existing_Steps(){
 
 		$steps_arr = [
-			array(new Step(new StepId(1),'this is first title', true,1)), 
-			array(new Step(new StepId(2), 'this is second title', false,1))
+			new Step(new StepId(1),'this is the first title', true,1), 
+			new Step(new StepId(2), 'this is the second title', true,2),
+			new Step(new StepId(3), 'this is the third title', false,3),
+			new Step(new StepId(4), 'this is the fourth title', false,4),
+			new Step(new StepId(5), 'this is the fifth title', false,5)
 		];
 
 		$procedure = new Procedure(
 			new ProcedureId(1), 
 			new InitiatorId(1234567890), 
 			'this is the procedure title', 
-			$steps_arr[1], 
+			$steps_arr, 
 			ProcedureType::ConstructionPermit(),
 			true
 			);
 
 		$procedure->advance();
-		$confirm_steptwo_completed = $procedure->isComplete();
-		$this->assertTrue($confirm_steptwo_completed);
 
+		$steps_of_procedure = $procedure->steps();	//only step 3 will return true because advance will return true by order. 
+
+		$confirm_stepthree_completed = $steps_of_procedure[2]->isComplete(); 	
+		$this->assertTrue($confirm_stepthree_completed);
+
+		$confirm_stepfour_incomplete = $steps_of_procedure[3]->isComplete();
+		$this->assertFalse($confirm_stepfour_incomplete);
+
+		$confirm_stepfive_incomple = $steps_of_procedure[4]->isComplete();
+		$this->assertFalse($confirm_stepfive_incomple);
 
 	}
 }
