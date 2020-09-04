@@ -78,6 +78,26 @@ class CommentRepositoryTest extends TestCase{
 		$this->assertNotEmpty($confirm_comment_removed);
 	}
 
+	public function test_If_removeByStepId_Carries_Comment_To_Step_Comment_Bin(){
+
+		$comment_repository = new CommentRepository(self::$db);
+
+		$comment_repository->save(new Comment(
+			new CommentId(3),
+			new StepId(3),
+			new PersonnelId(1),
+			'removed by removeByStepId',
+			new DateTime(),
+			new DateTime()
+		),
+		new StepId(2));
+
+		$comment_repository->removeByStepId(new StepId(2));
+		
+		$confirm_comment_removed = self::$db->query("SELECT * FROM step_comment_bin WHERE id = 3");
+		$this->assertNotEmpty($confirm_comment_removed);
+	}
+
 	public function test_stepExists_Method_Returns_True_If_StepId_Is_Found(){
 
 		$comment_repository = new CommentRepository(self::$db);
