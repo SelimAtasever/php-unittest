@@ -92,6 +92,26 @@ class AttachmentRepositoryTest extends TestCase{
 
 	}
 
+	public function test_If_removeByStepId_Carries_Attachment_To_Step_Attachment_Bin(){
+
+		$attachment_repository = new AttachmentRepository(self::$db, $this->file_locator, $this->file_bin_locator);
+
+		$attachment_repository->save(
+			new Attachment(
+			new AttachmentId(3),
+			new StepId(3),
+			new PersonnelId(1),
+			'attachment name',
+			'prefix,base64',
+			new DateTime()
+		));
+
+		$attachment_repository->removeByStepId(new StepId(3));
+		
+		$step_attachment_bin = self::$db->query("SELECT * FROM step_attachment_bin WHERE id=3");
+		$this->assertNotEmpty($step_attachment_bin);
+	}
+
 	public function test_If_nextId_Returns_A_New_Unique_Id(){
 
 		$attachment_repository = new AttachmentRepository(self::$db, $this->file_locator, $this->file_bin_locator);
