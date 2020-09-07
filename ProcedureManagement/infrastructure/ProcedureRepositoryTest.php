@@ -87,14 +87,34 @@ class ProcedureRepositoryTest extends TestCase{
 	public function test_If_remove_Method_Carries_Procedure_To_Procedure_Bin(){
 
 		$comment_repository = $this->createMock(ICommentRepository::class);
-		$comment_repository->method('removeByStepId')->willReturn(true);
+
+        $comment_repository->expects($this->once())
+
+                 ->method('removeByStepId')
+                 ->willReturn(true);
 
 		$attachment_repository = $this->createMock(IAttachmentRepository::class);
-		$attachment_repository->method('removeByStepId')->willReturn(true);
+
+        $attachment_repository->expects($this->once())
+                 ->method('removeByStepId')
+                 ->willReturn(true);
+
 
 		$procedure_repository = new ProcedureRepository(self::$db);
 
-		$procedure_repository->remove(new ProcedureId(2), $comment_repository, $attachment_repository);
+
+		$steps_arr = array(new Step(new StepId(1), 'title', true, 1));
+		$procedure_repository->save(new Procedure(
+			new ProcedureId(1),
+			new InitiatorId(9234567890),
+			'this is new procedure title',
+			$steps_arr,
+			ProcedureType::ConstructionPermit(),
+			true)
+		,new ContainerId(1));
+
+
+		$procedure_repository->remove(new ProcedureId(1), $comment_repository, $attachment_repository);
 
 		$confirm_carried_to_bin = self::$db->query("SELECT * FROM procedure_bin WHERE id = 2");
 		$this->assertNotEmpty($confirm_carried_to_bin);
