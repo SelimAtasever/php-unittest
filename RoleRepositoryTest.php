@@ -10,7 +10,6 @@ use \model\common\QueryObject;
 
 use PHPUnit\Framework\TestCase;
 
-
 class RoleRepositoryTest extends TestCase {
 
 
@@ -35,11 +34,14 @@ class RoleRepositoryTest extends TestCase {
 	}
 
 
-	public function testIfSaveCreatesNewRole() {
+	public function test_If_save_Method_Creates_A_New_Role() {
 
-		$role_repository = new RoleRepository();
+		$role_repository = new RoleRepository(self::$db);
 
-		$new_role = $role_repository->save(new Role(null, 'role1'));
+		$new_role = $role_repository->save(new Role(
+			null, 
+			'role_2'
+		));
 
 		$check_role_db = self::$db->query("SELECT * FROM role WHERE id = :id", array(
 			':id' => $new_role->getId()
@@ -48,25 +50,31 @@ class RoleRepositoryTest extends TestCase {
 		$this->assertNotEmpty($check_role_db);
 	}
 
-	public function testIfSaveUpdatesAnExistingRole(){
+	public function test_If_save_Method_Updates_Existing_Role(){
 
-		$role_repository = new RoleRepository();
+		$role_repository = new RoleRepository(self::$db);
 
-		$new_role = $role_repository->save(new Role(null, 'role-1'));
+		$new_role = $role_repository->save(new Role(
+			null, 
+			'role-1'
+		));
 
-		$role_repository->save(new Role($new_role, 'role-2'));
+		$role_repository->save(new Role($new_role, 'role_1'));
 
 		$updated_role = $role_repository->findById($new_role);
 
-		$this->assertEquals($updated_role->getName(), 'role-2');
+		$this->assertEquals($updated_role->getName(), 'role_1');
 
 	}
 
-	public function testIfRemoveDeletesRoleAndCarriesItToRoleBin() {
+	public function test_If_remove_Method_Deletes_The_Role_And_Carries_It_To_Role_Bin() {
 
-		$role_repository = new RoleRepository();
+		$role_repository = new RoleRepository(self::$db);
 
-		$new_role = $role_repository->save(new Role(null, 'role-3'));
+		$new_role = $role_repository->save(new Role(
+			null, 
+			'role-3'
+		));
 
 		$role_repository->remove($new_role);
 
@@ -84,36 +92,38 @@ class RoleRepositoryTest extends TestCase {
 	}
 
 
-	public function testIfExistsWithNameFindsTheRole() {
+	public function test_If_existsWithName_Method_Finds_The_Role_With_Roles_Name(){
 
-		$role_repository = new RoleRepository();
+		$role_repository = new RoleRepository(self::$db);
 
-		$new_role = $role_repository->save(new Role(null, 'role-4'));
+		$new_role = $role_repository->save(new Role(
+			null, 'role_3'
+		));
 
-		$check_role_exists = $role_repository->existsWithName('role-4');
+		$check_role_exists = $role_repository->existsWithName('role_3');
 
 		$this->assertTrue($check_role_exists);
 	}
 
 
-	public function testIfFetchRoleReturnsCorrectNumberOfRoles() {
+	public function test_If_count_Method_Returns_The_Number_Of_Roles_On_Db(){
 
-		self::$db->command("DELETE FROM role");
-        self::$db->command("DELETE FROM role_bin");
+		$role_repository = new RoleRepository(self::$db);
 
-		$role_repository = new RoleRepository();
-
-		$new_role1 = $role_repository->save(new Role(null, 'role-5'));
-		$new_role2 = $role_repository->save(new Role(null, 'role-6'));
-
-		$fetched_roles = $role_repository->fetchAll(new QueryObject());
-
-		$this->assertEquals(2, count($fetched_roles));
-
+		$number_of_roles = $role_repository->roleCount(new QueryObject());
 		
+		$this->assertEquals($number_of_roles, 3);
+	}
 
 
+	public function test_If_fetchAll_Method_Returns_All_Roles_On_Db(){
 
+		$role_repository = new RoleRepository(self::$db);
+
+		$array_of_roles = $role_repository->fetchAll(new QueryObject());
+
+		$this->assertIsArray($array_of_roles);
+		$this->assertEquals(count($array_of_roles), 3);
 	}
 
 }
