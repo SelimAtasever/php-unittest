@@ -27,9 +27,28 @@ class SubmoduleServiceTest extends TestCase {
 		$submodule = new Submodule(new SubmoduleId(1), new ModuleId(1), 'submodule_1');
 		$module = new Module(new ModuleId(1), 'module_1');
 
-		$this->submodule_repository = $this->createMock(ISubmoduleRepository::class);
-		$this->submodule_repository->method('findById')->willReturn($submodule);
-		$this->submodule_repository->method('exists')->willReturn(true);
+		$this->submodule_repository = $this->createStub(ISubmoduleRepository::class);
+		$this->submodule_repository->method('findById')->willReturnCallBack(
+			function($sub) use ($submodule){
+				$submodule_id = $sub->getId();
+
+				if($submodule_id ==1)
+					return $submodule;
+
+				else
+					return null;
+			}
+		);
+		$this->submodule_repository->method('exists')->willReturnCallBack(
+			function ($sub) use ($submodule){
+
+				$submodule_id = $sub->getId();
+				if($submodule_id == 1)
+					return true;
+				else
+					return false;
+			}
+		);
 
 		$this->module_repository = $this->createMock(IModuleRepository::class);
 		$this->module_repository->method('findById')->willReturn($module);
