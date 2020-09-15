@@ -30,8 +30,9 @@ class AuthorizationServiceTest extends TestCase {
 
 	protected function setUp() : void {
 
-		$this->personnel = new Personnel(new PersonnelId(1), new RoleId(1),true, null , 'john', 'doe', '11223344556', 'male', '0049224591432', 'johndoe@mail.com', null, null);	
-		$this->role = new Role(new RoleId(1), 'role1'); 	//role will return false if wont take privilege
+		$this->personnel = new Personnel(new PersonnelId(1), new RoleId(1),null, true, null , 'john', 'doe', '11223344556', 'male', '0049224591432', 'johndoe@mail.com', null, null);	
+
+		$this->role = new Role(new RoleId(1), 'role1'); 	//role will return false if it wont receive privilege
 		$this->role->addPrivilege(new Privilege(new SubmoduleId(1), true, true, true));
 		
 		$this->role2 = new Role(new RoleId(2), 'role2');
@@ -57,7 +58,7 @@ class AuthorizationServiceTest extends TestCase {
 		$submodule_service->method('getById')->willReturn(null);
 
 		$personnel_exists = $this->createMock(IPersonnelRepository::class);
-		$personnel_exists->method('findById')->willReturn(new Personnel(new PersonnelId(1), new RoleId(1),true, null, 'john', 'doe', '11223344556', 'female', '0049224591432', 'johndoe@mail.com', null, null));
+		$personnel_exists->method('findById')->willReturn(new Personnel(new PersonnelId(1), new RoleId(1),null,true, null, 'john', 'doe', '11223344556', 'female', '0049224591432', 'johndoe@mail.com', null, null));
 
 
 		$this->authorization_service = new AuthorizationService($personnel_repository, $role_repository, $submodule_service);   //for testing exceptions
@@ -73,28 +74,28 @@ class AuthorizationServiceTest extends TestCase {
 
 
 
-	public function testIfCanCreateReturnsTrue () {
+	public function test_canCreate_Returns_True_If_Personnel_Have_Access() {
 
 		$check_returns_true = $this->authorization_service3->canCreate(1,1);
 
 		$this->assertTrue($check_returns_true);
 	}
 
-	public function testIfCanViewReturnsTrue() {
+	public function test_canView_Returns_True_If_Personnel_Have_Access() {
 
 		$check_returns_true = $this->authorization_service3->canView(1,1);
 
 		$this->assertTrue($check_returns_true);
 	}
 
-	public function testIfCanUpdateReturnsTrue() {
+	public function test_canUpdate_Returns_True_If_Personnel_Have_Access() {
 
 		$check_returns_true = $this->authorization_service3->canUpdate(1,1);
 
 		$this->assertTrue($check_returns_true);
 	}
 
-	public function testIfCanDeleteReturnsTrue() {
+	public function test_canDelete_Returns_True_If_Personnel_Have_Access() {
 
 		$check_returns_true = $this->authorization_service3->canDelete(1,1);
 
@@ -107,14 +108,14 @@ class AuthorizationServiceTest extends TestCase {
 
 
 
-	public function testIfCanCreateReturnsFalse() {
+	public function test_canCreate_Returns_True_If_Personnel_Have_No_Access() {
 
 		$check_returns_false = $this->authorization_service4->canCreate(2,2);
 
 		$this->assertFalse($check_returns_false);
 	}
 
-	public function testIfCanViewReturnsFalse() {
+	public function test_canView_Returns_True_If_Personnel_Have_No_Access() {
 
 		$check_returns_false = $this->authorization_service3->canView(2,2);
 
@@ -122,7 +123,7 @@ class AuthorizationServiceTest extends TestCase {
 	}
 
 
-	public function testIfCanUpdateReturnsFalse() {
+	public function test_canUpdate_Returns_True_If_Personnel_Have_No_Access() {
 
 		$check_returns_false = $this->authorization_service4->canUpdate(2,2);
 
@@ -130,7 +131,7 @@ class AuthorizationServiceTest extends TestCase {
 	}
 
 
-	public function testIfCanDeleteReturnsFalse() {
+	public function test_canDelete_Returns_True_If_Personnel_Have_No_Access() {
 
 		$check_returns_false = $this->authorization_service4->canDelete(2,2);
 
@@ -213,9 +214,7 @@ class AuthorizationServiceTest extends TestCase {
 
 		$check_can_view = $this->authorization_service2->canDelete(1,1);
 
-
 	}
-
 }
 
 ?>
