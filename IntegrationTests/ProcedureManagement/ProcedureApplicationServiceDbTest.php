@@ -34,7 +34,7 @@ class ProcedureApplicationServiceDbTest extends TestCase{
 
 	}	
 
-	public function test_If_apply_Function_Returns_Procedure_Id(){ // BASLIGI DUZENLE ?????????????????????????????????
+	public function test_If_apply_Function_Returns_Procedure_Id(){ 
 
 		$application_file_locator = new ApplicationFileLocator('./role_root_dir/');	
 		$application_file_bin_locator = new ApplicationFileLocator('./role_root_bin_dir/');
