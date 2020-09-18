@@ -36,27 +36,32 @@ use PHPUnit\Framework\TestCase;
 class TaskManagementServiceTest extends TestCase {
 
 private  TaskManagementService $task_management_service;
+
+private function validTaskWithId(?int $id) {
+        return new Task(
+            new TaskId($id), 		/* id */
+           'TASK-TEST TITLE', 		/* title */
+			new PersonnelId(1), 	/* assigner */
+			null, 					/* assignee[] */
+			'ETHEREUM',				/* description */
+			null, 					/* start_date */
+			null, 					/* due_date */
+			null,					/* location */ 
+			null, 					/* subtasks[] */
+			null,					/* priority */
+			null,					/* status */
+			null, 					/* triggers[] */
+			null,					/* comments[] */ 
+			null, 					/* events[] */
+			null, 					/* attachments[] */
+			null, 					/* created_on */
+			null 					/* edited_on */
+		);
+    }
 	
 	public function test_If_createTask_Returns_Created_Tasks_Id(){
 
-		$task = new Task(
-			null,
-			'TASK-TEST TITLE', 
-			new PersonnelId(1), 
-			null, 
-			'ETHEREUM',
-			null, 
-			null, 
-			null, 
-			null, 
-			null,
-			null, 
-			null, 
-			null, 
-			null, 
-			null, 
-			null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		
@@ -105,7 +110,7 @@ private  TaskManagementService $task_management_service;
 		$assignee_arr = array(new PersonnelId(1));
 		$assignee_arr_number = array(1);
 
-		$task = new Task( null, 'TASK-TEST TITLE', new PersonnelId(1), $assignee_arr, 'ETHEREUM' ,null, null, null, null, null,null, 	null, 	null, 	null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		
@@ -146,7 +151,7 @@ private  TaskManagementService $task_management_service;
 		$assignee_arr = array(new PersonnelId(1));
 		$assignee_arr_number = array(1);
 
-		$task = new Task( null, 'TASK-TEST TITLE', null, $assignee_arr, 'ETHEREUM' ,null, null, null, null, null,null, 	null, 	null, 	null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		
@@ -179,23 +184,7 @@ private  TaskManagementService $task_management_service;
 
 	public function test_If_removeTask_Removes_The_Task(){
 
-		$task = new Task(
-		new TaskId(1),
-		'TASK-TEST TITLE', 
-		new PersonnelId(1), 
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		
@@ -263,6 +252,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null,
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -326,23 +316,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturn($task);
@@ -378,23 +352,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -441,23 +399,7 @@ private  TaskManagementService $task_management_service;
 		
 		try{
 
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturn($task);
@@ -492,23 +434,7 @@ private  TaskManagementService $task_management_service;
 		
 		try{
 
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -552,24 +478,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -613,24 +522,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -675,24 +567,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -737,24 +612,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -799,24 +657,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -826,7 +667,6 @@ private  TaskManagementService $task_management_service;
 				if($task_id == 2){ 
 					return $task;
 				}
-
 				else{return null;}
 			}
 		);	
@@ -860,24 +700,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 		
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1),
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -921,24 +744,27 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
+		$subtask_arr = array(
+			new Subtask(new SubtaskId(2), null, 'title1', null,null,null,null,null,null, null,null,null,null,null, new DateTime('now'))); 
+		
 		$task = new Task(
 		null,
 		'TASK-TEST TITLE', 
-		null, 
+		null,  
 		null, 
 		'ETHEREUM',
 		null, 
 		null, 
 		null, 
+		$subtask_arr, 
+		null,
 		null, 
 		null,
 		null, 
 		null, 
 		null, 
 		null, 
-		null, 
 		null);
-
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturn($task);
@@ -975,24 +801,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 		
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1), 
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturn($task);
@@ -1040,24 +849,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 	
-		$task = new Task(
-		null,
-		'TASK-TEST TITLE', 
-		new PersonnelId(1), 
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturn($task);
@@ -1108,6 +900,7 @@ private  TaskManagementService $task_management_service;
 		$subtask_arr, 
 		null,
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -1164,6 +957,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null);
@@ -1201,24 +995,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		null,
-		'CHANGED TASK-TEST TITLE', 
-		new PersonnelId(1),   	
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('findBySubtask')->willReturn($task);
@@ -1252,24 +1029,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		null,
-		'CHANGED TASK-TEST TITLE', 
-		new PersonnelId(1),   	
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -1313,24 +1073,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 		
-		$task = new Task(
-		null,
-		'CHANGED TASK-TEST TITLE', 
-		new PersonnelId(1),   	
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('findBySubtask')->willReturn($task);
@@ -1363,24 +1106,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 		
-		$task = new Task(
-		null,
-		'CHANGED TASK-TEST TITLE', 
-		null,   	
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('findBySubtask')->willReturn($task);
@@ -1431,6 +1157,7 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -1486,6 +1213,7 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -1542,6 +1270,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null);
@@ -1596,6 +1325,7 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -1650,6 +1380,7 @@ private  TaskManagementService $task_management_service;
 		$subtask_arr, 
 		null,
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -1707,6 +1438,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null);
@@ -1740,24 +1472,7 @@ private  TaskManagementService $task_management_service;
 
 	public function test_If_getSelfOwnedTasks_Returns_Related_Tasks_DTO(){
 
-		$task = new Task(
-		null,
-		'CHANGED TASK-TEST TITLE', 
-		new PersonnelId(1),   	
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		null);
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturn($task);
@@ -1798,11 +1513,11 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
-		null, 
-		new DateTime());
-
+		new DateTime(), 
+		null);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturn($task);
@@ -1835,24 +1550,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		new TaskId(1),
-		'CHANGED TASK-TEST TITLE', 
-		new PersonnelId(1),   	
-		null, 
-		'ETHEREUM',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		new DateTime());
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -1911,6 +1609,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		new DateTime());
@@ -1962,6 +1661,7 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -2023,6 +1723,7 @@ private  TaskManagementService $task_management_service;
 		$subtask_arr, 
 		null,
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -2075,6 +1776,7 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -2124,24 +1826,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		new TaskId(1),
-		'CHANGED TASK-TEST TITLE', 
-		new PersonnelId(1),   	
-		null, 
-		'BTC',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		new DateTime());
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('findBySubtask')->willReturn($task);
@@ -2187,6 +1872,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		new DateTime());
@@ -2221,24 +1907,7 @@ private  TaskManagementService $task_management_service;
 
 		try{
 
-		$task = new Task(
-		new TaskId(1),
-		'CHANGED TASK-TEST TITLE', 
-		new PersonnelId(1),   	
-		null, 
-		'BTC',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		new DateTime());
-
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturnCallback(
@@ -2296,11 +1965,11 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
 		new DateTime());
-
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturn($task);
@@ -2345,6 +2014,7 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -2396,6 +2066,7 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		null, 
@@ -2447,6 +2118,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		new DateTime());
@@ -2497,6 +2169,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		$comments_arr, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -2529,26 +2202,8 @@ private  TaskManagementService $task_management_service;
 
  		try{
 
- 		$task = new Task( 
-		new TaskId(1),
-		'CHANGED TASK-TEST TITLE', 
-		null,   	
-		null, 
-		'BTC',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		new DateTime());
-
 		$task_repository = $this->createMock(ITaskRepository::class);
-		$task_repository->method('find')->willReturn($task);
+		$task_repository->method('find')->willReturn(null);
 
 		$identity_provider_mock = $this->createMock(IIdentityProvider::class);
 		$identity_provider_mock->method('identity')->willReturn(1);  
@@ -2594,6 +2249,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		$comments_arr, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -2644,6 +2300,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		$comments_arr, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -2680,24 +2337,7 @@ private  TaskManagementService $task_management_service;
 
  		try{
 
-		$task = new Task( 
-
-		new TaskId(1),
-		'CHANGED TASK-TEST TITLE', 
-		new PersonnelId(1),   	
-		null, 
-		'BTC',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		new DateTime());
+		$task = $this->validTaskWithId(1);
 
 		$task_repository = $this->createMock(ITaskRepository::class);
 		$task_repository->method('find')->willReturn($task);
@@ -2745,6 +2385,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		$comments_arr, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -2777,28 +2418,8 @@ private  TaskManagementService $task_management_service;
 
  		try{
 
- 		$comments_arr = array(new Comment(new CommentId(1), new PersonnelId(1), 'this is the comment', new DateTime(), new DateTime()));
-		$task = new Task( 
-
-		new TaskId(1),
-		'CHANGED TASK-TEST TITLE', 
-		null,   	
-		null, 
-		'BTC',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		$comments_arr, 
-		null, 
-		null, 
-		new DateTime());
-
 		$task_repository = $this->createMock(ITaskRepository::class);
-		$task_repository->method('find')->willReturn($task);
+		$task_repository->method('find')->willReturn(null);
 
 		$identity_provider_mock = $this->createMock(IIdentityProvider::class);
 		$identity_provider_mock->method('identity')->willReturn(1);  
@@ -2844,6 +2465,7 @@ private  TaskManagementService $task_management_service;
 		$comments_arr, 
 		null, 
 		null, 
+		null, 
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -2868,32 +2490,13 @@ private  TaskManagementService $task_management_service;
 		$this->assertNotEmpty($stored_comment_vm);
  	}
 
- 	public function test_If_test_If_getTaskMostRecentEditedSelfOwnedComment_Throws_Exception_When_Personnel_Has_No_Access(){
+ 	public function test_If_getTaskMostRecentEditedSelfOwnedComment_Throws_Exception_When_Personnel_Has_No_Access(){
 
  		$this->expectException(TaskNotFoundException::class);
  		try{
 
- 		$task = new Task( 
-
-		new TaskId(1),
-		'CHANGED TASK-TEST TITLE', 
-		null,  	
-		null, 
-		'BTC',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		new DateTime());
-
 		$task_repository = $this->createMock(ITaskRepository::class);
-		$task_repository->method('find')->willReturn($task);
+		$task_repository->method('find')->willReturn(null);
 
 		$identity_provider_mock = $this->createMock(IIdentityProvider::class);
 		$identity_provider_mock->method('identity')->willReturn(1);  
@@ -2941,6 +2544,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -2968,7 +2572,7 @@ private  TaskManagementService $task_management_service;
 
  	}
 
- 	public function test_If_getTaskMostRecentEditedSelfOwnedComment_Throws_Exception_When_Personnel_Has_No_Access() {
+ 	public function test_If_getTaskMostRecentEditedSelfOwnedSubtaskComment_Throws_Exception_When_Personnel_Has_No_Access() {
 
  		$this->expectException(TaskNotFoundException::class);
 
@@ -2994,6 +2598,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3046,6 +2651,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3096,6 +2702,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		new DateTime());
@@ -3152,6 +2759,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3205,6 +2813,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3258,6 +2867,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3310,6 +2920,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		new DateTime());
@@ -3364,6 +2975,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3417,6 +3029,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		$event_arr, 
 		null, 
+		null,
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -3466,6 +3079,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		$event_arr, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3519,6 +3133,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		$event_arr, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3573,6 +3188,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		new DateTime());
@@ -3630,6 +3246,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3685,6 +3302,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -3738,6 +3356,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		null, 
 		new DateTime());
@@ -3790,9 +3409,10 @@ private  TaskManagementService $task_management_service;
 		null,
 		null, 
 		null, 
-		null, 
+		null,
 		null, 
 		$attachment_arr, 
+		null, 
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -3844,6 +3464,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		$attachment_arr, 
+		null,
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -3895,6 +3516,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		$attachment_arr, 
+		null,
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -3948,6 +3570,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		$attachment_arr, 
+		null,
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -3998,6 +3621,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		$attachment_arr, 
+		null, 
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -4031,26 +3655,8 @@ private  TaskManagementService $task_management_service;
 
  		$attachment_arr = array(new Attachment(new AttachmentId(1), new PersonnelId(1), 'name', 'base64', null));
 
- 		$task = new Task( 
-		new TaskId(1),
-		'CHANGED TASK-TEST TITLE', 
-		null,
-		null, 
-		'BTC',
-		null, 
-		null, 
-		null, 
-		null, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		$attachment_arr, 
-		new DateTime());
-
 		$task_repository = $this->createMock(ITaskRepository::class);
-		$task_repository->method('find')->willReturn($task);
+		$task_repository->method('find')->willReturn(null);
 
 		$identity_provider_mock = $this->createMock(IIdentityProvider::class);
 		$identity_provider_mock->method('identity')->willReturn(1);  
@@ -4098,6 +3704,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		null, 
 		new DateTime());
 
@@ -4130,32 +3737,8 @@ private  TaskManagementService $task_management_service;
  		$this->expectException(TaskNotFoundException::class);
 
  		try{
-
- 		$attachment_arr = array(new Attachment(new AttachmentId(1), new PersonnelId(1), 'name', 'base64', null));
-
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null,null,null,null,null,null, null,null,null,null,$attachment_arr, new DateTime('now')));
-
- 		$task = new Task( 
-		new TaskId(1),
-		'CHANGED TASK-TEST TITLE', 
-		null,
-		null, 
-		'BTC',
-		null, 
-		null, 
-		null, 
-		$subtask_arr, 
-		null,
-		null, 
-		null, 
-		null, 
-		null, 
-		null, 
-		new DateTime());
-
 		$task_repository = $this->createMock(ITaskRepository::class);
-		$task_repository->method('findBySubtask')->willReturn($task);
+		$task_repository->method('findBySubtask')->willReturn(null);
 
 		$identity_provider_mock = $this->createMock(IIdentityProvider::class);
 		$identity_provider_mock->method('identity')->willReturn(1);  
@@ -4204,6 +3787,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -4256,6 +3840,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -4307,6 +3892,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -4359,6 +3945,7 @@ private  TaskManagementService $task_management_service;
 		null, 
 		null, 
 		null, 
+		null,
 		new DateTime());
 
 		$task_repository = $this->createMock(ITaskRepository::class);
@@ -4400,8 +3987,6 @@ private  TaskManagementService $task_management_service;
 			}
 		}
 	}
-
 }
 
 ?>
-
