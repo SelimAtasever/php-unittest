@@ -10,6 +10,7 @@ use \model\TaskManagement\domain\model\TaskPriority;
 use \model\TaskManagement\domain\model\TaskStatus;
 use \model\TaskManagement\infrastructure\TaskRepository;
 use \model\TaskManagement\infrastructure\IFileLocator;
+
 use model\common\QueryObject;
 use model\common\ExceptionCollection;
 
@@ -35,9 +36,11 @@ class TaskRepositoryTest extends TestCase{
         );
 
         self::$db->command("DELETE FROM task");
+        self::$db->command("DELETE FROM task_assignee");
         self::$db->command("DELETE FROM subtask");
         self::$db->command("DELETE FROM subtask_assignee");
         self::$db->command("DELETE FROM task_bin");
+        self::$db->command("DELETE FROM task_comment_bin");
 
 	}
 
@@ -51,113 +54,188 @@ class TaskRepositoryTest extends TestCase{
 
 	}
 
+	private function validTaskWithoutTaskId($id, $assignee_arr = null, $subtask_arr = null) {
+        return new Task(
+            null, 					/* id */
+           'TASK-TEST TITLE', 		/* title */
+			new PersonnelId($id), 	/* assigner */
+			$assignee_arr, 			/* assignee[] */
+			'ETHEREUM',				/* description */
+			null, 					/* start_date */
+			null, 					/* due_date */
+			null,					/* location */ 
+			$subtask_arr, 			/* subtasks[] */
+			null,					/* priority */
+			null,					/* status */
+			null, 					/* triggers[] */
+			null,					/* comments[] */ 
+			null, 					/* events[] */
+			null, 					/* attachments[] */
+			null, 					/* created_on */
+			null 					/* edited_on */
+		);
+    }
+
 	public function testIf_save_Function_Creates_A_New_Task(){
 
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
 
-		$id = $task_repository->save(new Task(null, 'title', new PersonnelId(1), null, 'description', null,null, null, null, null,null, null, null, null, null, null));
+		$id = $task_repository->save($this->validTaskWithoutTaskId(1));
 
-		$check_task_saved = self::$db->query("SELECT * FROM task WHERE id = :id" , array(
+		$db_id = self::$db->query("SELECT * FROM task WHERE id = :id" , array(
 			':id' => $id->getId()
-		))->row;
+		))->row['id'];
 
-		$this->assertNotEmpty($check_task_saved);
+		$this->assertEquals($id->getId(), $db_id);
 	}
 
 	public function test_If_findBySubtask_Returns_The_Task(){
 
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
 
-		$subtask_arr = array( new Subtask(new SubtaskId(2), new TaskId(1), 'title' ,new PersonnelId(1), null,'description', null, new DateTime('now'), null, null, null, null, null, null, new DateTime('now'))
-		);
+		$subtask_arr = array(new Subtask(
+			null,										/* id */
+    		new TaskId(1),								/* task_id */
+    		'Subtask Test Title',						/* subtitle_title */
+    		new PersonnelId(1),							/* assigner_id */
+    		null,										/* assignee[] */
+    		'Subtask description',						/* subtask_description */
+    		null,										/* start_date */
+    		null,										/* due_date */
+    		null,										/* location */
+    		null,										/* priority */
+    		null,										/* status */
+    		null,										/* $comments */
+    		null,										/* $events */
+    		null,										/* $attachments */
+    		new DateTime()			
+		));
 
-		$id = $task_repository->save(new Task(null, 'title', new PersonnelId(1), null, 'description',null, null, null, $subtask_arr, null,null, null, null, null, null, null)); //save returns task id !!!!!!!!!!!!!!!!!!!!!!!
+		$task_id = $task_repository->save($this->validTaskWithoutTaskId(1, null, $subtask_arr));
+		$task_id_int = $task_id->getId();
 
-		$task = $task_repository->findBySubtask(new SubtaskId(1));
+		$subtask_id = self::$db->query("SELECT * FROM subtask WHERE task_id = $task_id_int ")->row['id'];
+		$task = $task_repository->findBySubtask(new SubtaskId($subtask_id));
 
-		$this->assertEquals($id, $task->id());
+		$this->assertEquals($task_id_int, $task->id()->getId());
 	}
 
 	public function test_If_find_Function_Returns_The_Task(){
 		
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
 
-		$id = $task_repository->save(new Task(null, 'title', new PersonnelId(1), null, 'description', null,null, null, null, null,null, null, null, null, null, null));  //save returns task id
+		$id = $task_repository->save($this->validTaskWithoutTaskId(1));
 
-		$task = $task_repository->find($id); // find needs 1 parameter which is taskid
+		$task = $task_repository->find($id); 
+
 		$this->assertEquals($id, $task->id());
 	}
 
-	public function test_If_taskRelatedTo_Returns_Tasks_Related_To_Assigner() {
+	public function test_If_taskRelatedTo_Returns_Number_Of_Tasks() {
 
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
 
-		$task_repository->save(new Task(null, 'jon', new PersonnelId(2), null, 'samwise',null, null, null, null, null,null, null, null, null, null, null));
-
-		$task_repository->save(new Task(null, 'snow', new PersonnelId(2), null, 'gamgee',null, null, null, null, null,null, null, null, null, null, null));
+		$task_repository->save($this->validTaskWithoutTaskId(1));
+		$task_repository->save($this->validTaskWithoutTaskId(1));
 		
-		$tasks = $task_repository->tasksRelatedTo(new PersonnelId(2), new QueryObject());
-		$this->assertNotEmpty($tasks);
+		$tasks = $task_repository->tasksRelatedTo(new PersonnelId(1), new QueryObject());
+
+		$this->assertCount(5,$tasks);
 	}
 
 	public function test_If_taskRelatedTo_Returns_Tasks_Related_To_Assignee() {
 
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
-
-		$assignee_arr = array(
-			new PersonnelId(1)
-		);
-
-		$task_repository->save(new Task(null, 'title0', null, $assignee_arr, 'desc00',null, null, null, null, null,null, null, null, null, null, null));
-		
-		$task_repository->save(new Task(null, 'title1', null, $assignee_arr, 'desc11',null, null, null, null, null,null, null, null, null, null, null));
+		$task_repository->save($this->validTaskWithoutTaskId(1));
 		
 		$tasks = $task_repository->tasksRelatedTo(new PersonnelId(1), new QueryObject());
-		$this->assertNotEmpty($tasks);
 
+		$first_task = $tasks[0];
+		$id_obj = $first_task->id();
+		$id = $id_obj->getId();
+
+		$id_from_db = self::$db->query("SELECT * FROM task WHERE id = $id")->row['id'];
+		$this->assertEquals($id, $id_from_db);
 	}
 
-	public function test_If_taskRelatedTo_Returns_Tasks_Inside_Subtasks_Of_Assigner() {
+		//$id`li `personnel`in `assigner`i oldugu `Subtask`larin icerisinde bulundugu `Task`lar
+	 	//`$id`li `personnel`in `assignee`si oldugu `Subtask`larin icerisinde bulundugu `Task`lar
 
-		$subtask_arr = array( new Subtask(new SubtaskId(1), new TaskId(1), 'title' ,new PersonnelId(2), null,'description', null, new DateTime('now'), null, null, null, null, null, null, new DateTime('now'))
-		);
+	public function test_If_taskRelatedTo_Returns_Tasks_Contains_Subtasks_Of_Assigner(){
 
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
 
-		$task_repository->save(new Task(null, 'newtitle', new PersonnelId(1), null, 'decs00',null, null, null, $subtask_arr, null,null, null, null, null, null, null));
+		$subtask_arr = array(new Subtask(
+			null,										
+    		new TaskId(1),								
+    		'Subtask Test Title 1',						
+    		new PersonnelId(2),							
+    		null,										
+    		'Subtask description 1',
+    		null,										
+    		null,										
+    		null,										
+    		null,										
+    		null,										
+    		null,										
+    		null,										 
+    		null,										 
+    		new DateTime()			
+		));
 
-		$subtasks = $task_repository->tasksRelatedTo(new PersonnelId(2), new QueryObject());
-		$this->assertNotEmpty($subtasks);
+		$id = $task_repository->save($this->validTaskWithoutTaskId(2, $assignee_arr = null, $subtask_arr));
+		$id_int = $id->getId();
 
+		$tasks = $task_repository->tasksRelatedTo(new PersonnelId(2), new QueryObject());
+		
+		$id_from_db = self::$db->query("SELECT * FROM task WHERE id = $id_int")->row['id'];	
+		$this->assertEquals($id_from_db, $tasks[0]->id()->getId());
 	}
 
-	public function test_If_taskRelatedTo_Returns_Tasks_Inside_Subtasks_Of_Assignee() {
+	public function test_If_taskRelatedTo_Returns_Tasks_Contains_Subtasks_Of_Assignee(){
+
+
+		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
 
 		$assignee_arr = array(
-			new PersonnelId(1)
+			new PersonnelId(3)
 		);
 
-		$subtask_arr = array( new Subtask(new SubtaskId(1), new TaskId(1), 'title' ,null, $assignee_arr,'description', null, new DateTime('now'), null, null, null, null, null, null, new DateTime('now'))
-		);
+		$subtask_arr = array(new Subtask(
+			null,										
+    		null,								
+    		'Subtask Test Title 2',						
+    		new PersonnelId(4),							
+    		$assignee_arr,										
+    		'Subtask description 2',
+    		null,										
+    		null,										
+    		null,										
+    		null,										
+    		null,										
+    		null,										
+    		null,										 
+    		null,										 
+    		new DateTime()			
+		));
 
-		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
+		$id = $task_repository->save($this->validTaskWithoutTaskId(2, $assignee_arr, $subtask_arr));
+		$id_int = $id->getId();
 
-		$task_repository->save(new Task(null, 'godfather', null, $assignee_arr, 'vito corleone',null, null, null, $subtask_arr, null,null, null, null, null, null, null));
+		$tasks = $task_repository->tasksRelatedTo(new PersonnelId(3), new QueryObject());
 
-		$subtasks = $task_repository->tasksRelatedTo(new PersonnelId(1), new QueryObject());
-		$this->assertNotEmpty($subtasks);
+		$id_from_db = self::$db->query("SELECT * FROM task WHERE id = $id_int")->row['id'];
+		$this->assertEquals($tasks[0]->id()->getId(), $id_from_db);
 	}
 
 	public function test_If_tasksRelatedToCount_Returns_The_Number_Of_Related_Tasks_Of_Assigner(){
 
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
 
-		$task_repository->save(new Task(null, 'jon', new PersonnelId(9), null, 'samwise',null, null, null, null, null,null, null, null, null, null, null));
-
-		$task_repository->save(new Task(null, 'snow', new PersonnelId(9), null, 'gamgee',null, null, null, null, null,null, null, null, null, null, null));
+		$task_repository->save($this->validTaskWithoutTaskId(1));
 		
-		$tasks_of_assigner = $task_repository->tasksRelatedToCount(new PersonnelId(9), new QueryObject());
-		$this->assertEquals($tasks_of_assigner, 2); // 2 tasks related to personnel 9.
+		$tasks_of_assigner = $task_repository->tasksRelatedToCount(new PersonnelId(1), new QueryObject());
+		$this->assertEquals($tasks_of_assigner, 7); 
 	}
 
 	public function test_If_tasksRelatedToCount_Returns_The_Number_Of_Related_Tasks_Of_Assignee(){
@@ -165,60 +243,30 @@ class TaskRepositoryTest extends TestCase{
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
 
 		$assignee_arr = array(
-			new PersonnelId(8)
-		);
-
-		$task_repository->save(new Task(null, 'title0', null, $assignee_arr, 'desc00',null, null, null, null, null,null, null, null, null, null, null));
-		
-		$task_repository->save(new Task(null, 'title1', null, $assignee_arr, 'desc11',null, null, null, null, null,null, null, null, null, null, null));
-		
-		$tasks_of_assignee = $task_repository->tasksRelatedToCount(new PersonnelId(8), new QueryObject());
-		$this->assertEquals($tasks_of_assignee, 2);
+			new PersonnelId(1)
+		);		
+		$tasks_of_assignee = $task_repository->tasksRelatedToCount(new PersonnelId(1), new QueryObject());
+		$this->assertEquals($tasks_of_assignee, 7);
 
 	}
 
-	public function test_If_tasksRelatedToCount_Returns_The_Number_Of_Tasks_Inside_Of_Subtasks_Related_To_Assignee(){
-		
-		$subtask_arr = array( new Subtask(new SubtaskId(1), new TaskId(1), 'title' ,new PersonnelId(7), null,'description', null, new DateTime('now'), null, null, null, null, null, null, new DateTime('now'))
-		);
+	public function test_If_remove_Function_Carries_Task_To_Task_Bin(){
 
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
 
-		$task_repository->save(new Task(null, 'newtitle', new PersonnelId(1), null, 'decs00',null, null, null, $subtask_arr, null,null, null, null, null, null, null));
-
-		$subtasks = $task_repository->tasksRelatedToCount(new PersonnelId(7), new QueryObject());
-		$this->assertEquals($subtasks, 1);
-	}
-
-	public function test_If_tasksRelatedToCount_Returns_The_Number_Of_Tasks_Inside_Of_Subtasks_Related_To_Assigner(){
-
-		$subtask_arr = array( new Subtask(new SubtaskId(1), new TaskId(1), 'title' ,new PersonnelId(5), null,'description', null, new DateTime('now'), null, null, null, null, null, null, new DateTime('now'))
-		);
-
-		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
-
-		$task_repository->save(new Task(null, 'newtitle', new PersonnelId(1), null, 'decs00',null, null, null, $subtask_arr, null,null, null, null, null, null, null));
-
-		$subtasks = $task_repository->tasksRelatedToCount(new PersonnelId(5), new QueryObject());
-		$this->assertEquals($subtasks, 1);
-	}
-
-
-	public function test_If_remove_Function_Carries_Task_To_TaskBin(){
-
-		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
-
-		$id = $task_repository->save(new Task(null, 'new title', null, null, 'new description',null, null, null, null, null,null, null, null, null, null, null));
+		$id = $task_repository->save($this->validTaskWithoutTaskId(1));
+		$id_int = $id->getId();
 
 		$task_repository->remove($id);
 
-		$confirm_carried_to_bin = self::$db->query("SELECT * FROM task_bin WHERE id = :id", array(
-			':id' => $id->getId()
-		))->row;
+		$task_id = self::$db->query("SELECT * FROM task WHERE id = $id_int")->row;
+		
+		$this->assertEmpty($task_id);
 
-		$this->assertNotEmpty($confirm_carried_to_bin);
+		$task_bin_id = self::$db->query("SELECT * FROM task_bin WHERE id = $id_int")->row['id'];
+
+		$this->assertEquals($id_int, $task_bin_id);
 	}
-
 }
 
 ?>
