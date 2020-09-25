@@ -43,25 +43,29 @@ class ApplicationRepositoryTest extends TestCase{
 		$this->application_file_bin_locator->method('locate')->willReturn(DIR_REPOSITORY . 'repo/test_bin/folder.txt');
 	}
 
-		public function test_If_save_Method_Stores_New_Data_To_Step_Application_Table(){
+	public function test_If_save_Method_Stores_New_Data_To_Step_Application_Table(){
 
-			$application_repository = new ApplicationRepository(self::$db, $this->application_file_locator, $this->application_file_bin_locator);
+		$application_repository = new ApplicationRepository(
+			self::$db, $this->application_file_locator, $this->application_file_bin_locator);
 
-			$files_arr = array();
+		$files_arr = array();
 
-			$id = $application_repository->save(
-				new FormData('file', $files_arr), 
-				new ProcedureId(1), 
-				InitiatorType::Individual(),
-				new InitiatorId(1234567890));
+		$application_id = $application_repository->save(
+			new FormData('file', $files_arr), 
+			new ProcedureId(1), 
+			InitiatorType::Individual(),
+			new InitiatorId(1234567890));
 
-			$confirm_application_added = self::$db->query('SELECT * FROM application WHERE id = :id', array(
-				':id' => $id->getId()
-			))->row;
-			$this->assertNotEmpty($confirm_application_added);	
+		$id = $application_id->getId();
+
+		$application_db = self::$db->query('SELECT * FROM application WHERE id = :id', array(
+			':id' => $application_id->getId()
+		))->row;
+
+		$this->assertEquals($application_db['id'], $id);	
 	}	
 
-
+	
 	public function test_If_remove_Method_Moves_New_Attachment_To_Application_Bin(){
 
 		$application_repository = new ApplicationRepository(
@@ -69,19 +73,23 @@ class ApplicationRepositoryTest extends TestCase{
 
 		$files_arr = array();
 
-		$id = $application_repository->save(
+		$application_id = $application_repository->save(
 			new FormData('file', $files_arr), 
 			new ProcedureId(2), 
 			InitiatorType::Individual(),
 			new InitiatorId(1234567890));
 
-		$application_repository->remove($id);
+		$id = $application_id->getId();
+
+		$application_repository->remove($application_id);
 
 		$application_bin_db = self::$db->query('SELECT * FROM application_bin WHERE id =:id', array(
-			':id' => $id->getId()
+			':id' => $application_id->getId()
 		))->row;
-		$this->assertNotEmpty($application_bin_db);
+
+		$this->assertEquals($application_bin_db['id'], $id);
 	}	
+
 }
 
 ?>
