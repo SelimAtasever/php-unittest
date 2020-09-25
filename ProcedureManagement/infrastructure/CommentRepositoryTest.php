@@ -45,8 +45,8 @@ class CommentRepositoryTest extends TestCase{
 		), 
 		new StepId(1));
 
-		$comment_row = self::$db->query('SELECT * FROM step_comment WHERE id = 1')->rows;
-		$this->assertNotEmpty($comment_row);
+		$comment_id = self::$db->query('SELECT * FROM step_comment WHERE id = 1')->row['id'];
+		$this->assertEquals(1, $comment_id);
 
 	}
 
@@ -74,8 +74,11 @@ class CommentRepositoryTest extends TestCase{
 
 		$comment_repository->remove(new CommentId(2)); 
 
-		$confirm_comment_removed = self::$db->query('SELECT * FROM step_comment_bin WHERE id = 2')->rows;
-		$this->assertNotEmpty($confirm_comment_removed);
+		$step_comment = self::$db->query('SELECT * FROM step_comment WHERE id = 2')->row;
+		$this->assertEmpty($step_comment);
+
+		$step_comment_bin_id = self::$db->query("SELECT * FROM step_comment_bin WHERE id = 2")->row['id'];
+		$this->assertEquals(2, $step_comment_bin_id);
 	}
 
 	public function test_If_removeByStepId_Carries_Comment_To_Step_Comment_Bin(){
@@ -94,8 +97,11 @@ class CommentRepositoryTest extends TestCase{
 
 		$comment_repository->removeByStepId(new StepId(2));
 		
-		$confirm_comment_removed = self::$db->query("SELECT * FROM step_comment_bin WHERE id = 3");
-		$this->assertNotEmpty($confirm_comment_removed);
+		$step_comment = self::$db->query("SELECT * FROM step_comment WHERE id = 3")->row;
+		$this->assertEmpty($step_comment);
+
+		$step_comment_bin_id = self::$db->query("SELECT * FROM step_comment_bin WHERE id = 3")->row['id'];
+		$this->assertEquals(3,$step_comment_bin_id);
 	}
 
 	public function test_stepExists_Method_Returns_True_If_StepId_Is_Found(){
@@ -108,15 +114,14 @@ class CommentRepositoryTest extends TestCase{
 		$this->assertTrue($confirm_step_exists);
 	}	
 
-	public function test_If_nextId_Returns_A_New_Unique_Id(){
+	public function test_If_nextId_Returns_A_New_Unique_Id_As_Comment_Id_Object(){
 
 		$comment_repository = new CommentRepository(self::$db);
 
 		$unique_id = $comment_repository->nextId();
+
 		$this->assertNotEmpty($unique_id);
 	}
-
-	
 }	
 
 ?>
