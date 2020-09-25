@@ -13,7 +13,6 @@ use PHPUnit\Framework\TestCase;
 
 class PersonnelRepositoryTest extends TestCase {
 
-
     private static \DB $db;
 
     public static function setUpBeforeClass() : void {
@@ -35,44 +34,63 @@ class PersonnelRepositoryTest extends TestCase {
 
     }
 
+    private function validPersonnelWithoutId($tcno, $phone, $email){
+        return new Personnel(
+            null,                          /* id */
+            null,                          /* role id */
+            null,                          /* department id */
+            true,                          /* is active */
+            null,                          /* image id */
+            'john',                        /* firstname */
+            'doe',                         /* lastname */
+            $tcno,                         /* tc num */
+            'male',                        /* gender */
+            $phone,                        /* phone */
+            $email,                        /* email */
+            null,                          /* date added */
+            null                           /* last modification */
+        );
+    }
+
+
     public function testIfSavePersonnelAddsNewPersonnelToDb() {
 
         $personnel_repository = new PersonnelRepository(self::$db);
-
-        $new_personnel = $personnel_repository->save(new Personnel(
-            null, 
-            new RoleId(1),
-            null, 
-            true, 
-            null, 
-            'john', 
-            'doe', 
-            '11223344556', 
-            'female', 
-            '0049224591432', 
-            'johndoe@mail.com', 
-            null, 
-            null
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '01223344556', '0049224591432', 'john_doe_0@kant.ist'
         ));
 
+        $id = $personnel_id->getId();
+        $db_personnel_id = self::$db->query("SELECT * FROM personnel WHERE id = $id")->row['id'];
 
-        $db_check = self::$db->query("SELECT * FROM personnel WHERE id=:id", array(
-            ':id' => $new_personnel->getId()
-        ))->row;
-
-        $this->assertNotEmpty($db_check);
+        $this->assertEquals($id, $db_personnel_id);
     }
-
 
     public function testIfSavePersonnelUpdatesNewPersonnelOnDb () {
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
-        $new_personnel = $personnel_repository->save(new Personnel(null, new RoleId(1),null, true, null, 'john', 'doe', '11223344557', 'female', '0040224591432', 'ohndoe@mail.comj', null, null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '11223344556', '1049224591432', 'john_doe_1@kant.ist'
+        ));
 
-        $personnel_repository->save(new Personnel($new_personnel, new RoleId(1),null, true, null, 'mary', 'doe', '11223344557', 'female', '0040224591432', 'marydoe@mail.com', null, null));
+        $personnel_repository->save(new Personnel(
+            $personnel_id, 
+            new RoleId(1),
+            null, 
+            true, 
+            null, 
+            'mary', 
+            'doe', 
+            '11223344557', 
+            'female', 
+            '0040224591432', 
+            'marydoe@mail.com', 
+            null, 
+            null
+        ));
 
-        $updated_personnel = $personnel_repository->findById($new_personnel);
+        $updated_personnel = $personnel_repository->findById($personnel_id);
 
         $this->assertEquals($updated_personnel->getFirstName(), 'mary');
     }
@@ -82,21 +100,20 @@ class PersonnelRepositoryTest extends TestCase {
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
-        $new_personnel = $personnel_repository->save(new Personnel(null, new RoleId(1), null, true, true, 'will', 'smith', '11222244556', 'male', '0041224591432', 'will@mail.com',null ,null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '21223344556', '2049224591432', 'john_doe_2@kant.ist'
+        ));
 
-        $personnel_repository->remove($new_personnel);
+        $id = $personnel_id->getId();
 
-        $db_check_personnel = self::$db->query("SELECT * FROM personnel WHERE id=:id", array(
-            ':id' => $new_personnel->getId()
-        ))->row;
+        $personnel_repository->remove($personnel_id);
 
-        $this->assertEmpty($db_check_personnel);
+        $personnel_empty = self::$db->query("SELECT * FROM personnel WHERE id = $id")->row;
 
-        $db_check_bin = self::$db->query("SELECT * FROM personnel_bin WHERE id=:id", array(
-            ':id' => $new_personnel->getId()
-        ))->row;
+        $this->assertEmpty($personnel_empty);
 
-        $this->assertNotEmpty($db_check_bin);
+        $personnel_bin_id = self::$db->query("SELECT * FROM personnel_bin WHERE id = $id")->row['id'];
+        $this->assertEquals($id, $personnel_bin_id);
     }
 
 
@@ -104,13 +121,28 @@ class PersonnelRepositoryTest extends TestCase {
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
-        $new_personnel = $personnel_repository->save(new Personnel(null, new RoleId(1),null, true, null, 'morty', 'doe', '19223344557', 'female', '0030224591432', 'jonwick@mail.comj', null, null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '31223344556', '3049224591432', 'john_doe_3@kant.ist'
+        ));
 
-        $personnel_repository->save(new Personnel($new_personnel, new RoleId(1),null, true, null, 'jo', 'doe', '19223344557', 'female', '0030224591432', 'johnwick@mail.com', null, null));
+        $personnel_repository->save(new Personnel(
+            $personnel_id, 
+            new RoleId(1),
+            null, 
+            true, 
+            null, 
+            'mary II', 
+            'doe', 
+            '31223344556', 
+            'female', 
+            '3049224591432', 
+            'john_doe_3@kant.ist', 
+            null, 
+            null
+        ));
 
-        $updated_personnel = $personnel_repository->findByEmail('johnwick@mail.com');
-
-        $this->assertEquals($updated_personnel->getEmail(), 'johnwick@mail.com');
+        $updated_personnel = $personnel_repository->findByEmail('john_doe_3@kant.ist');
+        $this->assertEquals($updated_personnel->getEmail(), 'john_doe_3@kant.ist');
 
      }
 
@@ -118,10 +150,11 @@ class PersonnelRepositoryTest extends TestCase {
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
-        $personnel_id = $personnel_repository->save(new Personnel(null, new RoleId(1),null, true, null,'ben', 'doe','19223340507', 'female', '0534224591432', 'vito@corleone.itj', null, null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '41223344556', '4049224591432', 'john_doe_4@kant.ist'
+        ));
 
         $check_id_exists = $personnel_repository->existsWithId($personnel_id);
-
         $this->assertTrue($check_id_exists);
      }
 
@@ -130,10 +163,11 @@ class PersonnelRepositoryTest extends TestCase {
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
-        $new_personnel = $personnel_repository->save(new Personnel(null, new RoleId(1),null, true, null, 'mark', 'doe', '00223344557', 'female', '1030224591432', 'aliali@mail.com', null, null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '51223344556', '5049224591432', 'john_doe_5@kant.ist'
+        ));
         
-        $check_email_exist = $personnel_repository->existsWithEmail('aliali@mail.com', null);
-
+        $check_email_exist = $personnel_repository->existsWithEmail('john_doe_5@kant.ist', null);
         $this->assertTrue($check_email_exist);
 
      }
@@ -143,12 +177,12 @@ class PersonnelRepositoryTest extends TestCase {
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
-        $new_personnel = $personnel_repository->save(new Personnel(null, new RoleId(1),null, true, null, 'lin', 'doe', '00223354557', 'female', '1130224591432', 'joedoe@mail.com', null, null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '61223344556', '6049224591432', 'john_doe_6@kant.ist'
+        ));
 
-        $check_email_exist = $personnel_repository->existsWithEmail('joedoe@mail.com', $new_personnel);
-
+        $check_email_exist = $personnel_repository->existsWithEmail('joedoe@mail.com', $personnel_id);
         $this->assertFalse($check_email_exist);
-
 
      }
 
@@ -156,10 +190,11 @@ class PersonnelRepositoryTest extends TestCase {
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
-        $new_personnel = $personnel_repository->save(new Personnel(null, new RoleId(1),null,  true, null, 'zoe', 'doe', '10223344546', 'male' , '1131224591433', 'zoedoe@gmail.com', null, null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '71223344556', '7049224591432', 'john_doe_7@kant.ist'
+        ));
 
-        $check_tcno_exist = $personnel_repository->existsWithTcno('10223344546', null);
-
+        $check_tcno_exist = $personnel_repository->existsWithTcno('71223344556', null);
         $this->assertTrue($check_tcno_exist);
 
     }
@@ -169,9 +204,11 @@ class PersonnelRepositoryTest extends TestCase {
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
-        $new_personnel = $personnel_repository->save(new Personnel(null, new RoleId(1),null,  true, null, 'mike', 'doe', '12223344556', 'male', '1132214591439', 'candoe@gmail.com', null, null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '81223344556', '8049224591432', 'john_doe_8@kant.ist'
+        ));
 
-        $check_tcno_exist = $personnel_repository->existsWithTcno('12223344556', $new_personnel);
+        $check_tcno_exist = $personnel_repository->existsWithTcno('81223344556', $personnel_id);
 
         $this->assertFalse($check_tcno_exist);
     
@@ -182,22 +219,24 @@ class PersonnelRepositoryTest extends TestCase {
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
-        $new_personnel = $personnel_repository->save(new Personnel(null, new RoleId(1),null,  true, null, 'joe', 'doe', '02223344556', 'male', '1132214591430', 'tiodoe@gmail.com', null, null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '91223344556', '9049224591432', 'john_doe_9@kant.ist'
+        ));
 
-        $check_phone_exists = $personnel_repository->existsWithPhone('1132214591430', null);
-
+        $check_phone_exists = $personnel_repository->existsWithPhone('9049224591432', null);
         $this->assertTrue($check_phone_exists);
     }
 
 
     public function testExistsWithPhoneReturnsFalseIfExistingPhoneUsingExclude (){
 
-         $personnel_repository = new PersonnelRepository(self::$db);
+        $personnel_repository = new PersonnelRepository(self::$db);
 
-         $new_personnel = $personnel_repository->save(new Personnel(null, new RoleId(1),null,  true, null, 'mark', 'doe', '02223314556', 'female', '1932214591430','markdoe@gmail.com', null, null));
+        $personnel_id = $personnel_repository->save($this->validPersonnelWithoutId(
+            '92223344556', '9249224591432', 'john_doe_11@kant.ist'
+        ));
 
-         $check_phone_exists = $personnel_repository->existsWithPhone('1932214591430', $new_personnel);
-
+         $check_phone_exists = $personnel_repository->existsWithPhone('9249224591432', $personnel_id);
          $this->assertFalse($check_phone_exists);
 
     }
@@ -212,7 +251,7 @@ class PersonnelRepositoryTest extends TestCase {
     }
 
 
-    public function test_If_fetchAll_Method_Returns_All_Personnels_On_Db(){
+    public function test_If_fetchAll_Method_Returns_All_Personnels_On_Db_Inside_An_Array(){
 
         $personnel_repository = new PersonnelRepository(self::$db);
 
@@ -220,9 +259,7 @@ class PersonnelRepositoryTest extends TestCase {
 
         $this->assertIsArray($personnels_of_db);
         $this->assertEquals(count($personnels_of_db), 10);
-
-    }
-
+    }a
 }
 
 ?>
