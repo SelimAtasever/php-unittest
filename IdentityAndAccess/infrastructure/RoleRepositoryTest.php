@@ -38,16 +38,16 @@ class RoleRepositoryTest extends TestCase {
 
 		$role_repository = new RoleRepository(self::$db);
 
-		$new_role = $role_repository->save(new Role(
+		$role_id = $role_repository->save(new Role(
 			null, 
 			'role_2'
 		));
 
-		$check_role_db = self::$db->query("SELECT * FROM role WHERE id = :id", array(
-			':id' => $new_role->getId()
-		))->row;
+		$id = $role_id->getId();
+		$role_id_from_db = self::$db->query("SELECT * FROM role WHERE id = $id")->row['id'];
 
-		$this->assertNotEmpty($check_role_db);
+		$this->assertEquals($id, $role_id_from_db);
+
 	}
 
 	public function test_If_save_Method_Updates_Existing_Role(){
@@ -71,24 +71,22 @@ class RoleRepositoryTest extends TestCase {
 
 		$role_repository = new RoleRepository(self::$db);
 
-		$new_role = $role_repository->save(new Role(
+		$role_id = $role_repository->save(new Role(
 			null, 
 			'role-3'
 		));
 
-		$role_repository->remove($new_role);
+		$id = $role_id->getId();
 
-		$check_if_role_deleted = self::$db->query("SELECT * FROM role WHERE id = :id", array(
-			':id' => $new_role->getId()
-		))->row;
+		$role_repository->remove($role_id);
+
+		$check_if_role_deleted = self::$db->query("SELECT * FROM role WHERE id = $id")->row;
 
 		$this->assertEmpty($check_if_role_deleted);
 
-		$check_role_bin = self::$db->query("SELECT * FROM role_bin WHERE id= :id", array(
-			':id' => $new_role->getId()
-		))->row;
+		$role_bin_id = self::$db->query("SELECT * FROM role_bin WHERE id = $id")->row['id'];
 
-		$this->assertNotEmpty($check_role_bin);
+		$this->assertEquals($id, $role_bin_id);
 	}
 
 
