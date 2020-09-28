@@ -158,9 +158,6 @@ class TaskRepositoryTest extends TestCase{
 		$this->assertEquals($id, $id_from_db);
 	}
 
-		//$id`li `personnel`in `assigner`i oldugu `Subtask`larin icerisinde bulundugu `Task`lar
-	 	//`$id`li `personnel`in `assignee`si oldugu `Subtask`larin icerisinde bulundugu `Task`lar
-
 	public function test_If_taskRelatedTo_Returns_Tasks_Contains_Subtasks_Of_Assigner(){
 
 		$task_repository = new TaskRepository(self::$db, $this->locator, $this->bin_locator);
