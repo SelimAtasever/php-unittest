@@ -27,10 +27,53 @@ use PHPUnit\Framework\TestCase;
 
 class TaskTest extends TestCase {
 
+	private function validTaskWithId($id, $assignee = null, $subtasks = null){
+		return new Task(
+
+			new TaskId($id), 				/* id */
+			'title', 						/* title */
+			new PersonnelId(1), 			/* assigner id */
+			$assignee, 						/* assignee[] */
+			'description',					/* description */
+			null, 							/* start date */
+			null, 							/* due date */
+			null, 							/* location */
+			$subtasks, 						/* subtasks[] */
+			null,							/* priority */
+			null, 							/* status */
+			null,							/* triggers[] */ 
+			null, 							/* comments[] */
+			null, 							/* events[] */
+			null, 							/* attachments[] */
+			null, 							/* created on */
+			null 							/* edited on */
+		);
+	}
+
+		private function validSubtaskWithId($id, $assignee = null, $comments = null, $attachments = null){
+		return new Subtask(
+			new SubtaskId($id), 			/* id */
+			new TaskId(1), 					/* task id */
+			'Subtask Title',				/* title */
+			new PersonnelId(1),				/* assigner */
+			$assignee,						/* assignee[] */
+			'Subtask Description',			/* description */ 
+			new DateTime(), 				/* start date */
+			new DateTime(), 				/* due date */
+			null, 							/* location */
+			null, 							/* priority */
+			null, 							/* status */
+			$comments, 						/* comments[] */
+			null, 							/* events[] */
+			$attachments, 					/* attachments[] */
+			new DateTime()					/* created on[] */
+		);
+	}
+
 
 	public function test_IsAssigner_Returns_True_If_PersonnelId_Matches() {
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$check_can_assign = $task->isAssigner(new PersonnelId(1));
 		$this->assertTrue($check_can_assign);
@@ -39,16 +82,45 @@ class TaskTest extends TestCase {
 
 	public function test_IsRemovableBy_Returns_True_When_PersonnelId_Matches() {
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
-		$check_removed = $task->isRemovableBy(new PersonnelId(1));
-		$this->assertTrue($check_removed);
+		$confirm_returns_true = $task->isRemovableBy(new PersonnelId(1));
+		$this->assertTrue($confirm_returns_true);
 
 	}
 
+	public function test_If_IsRemovableBy_Returns_False_When_Assigner_Is_Null(){
+
+		$task = new Task(
+
+			new TaskId(1),
+			'title', 
+			null, 		 // assigner id null given, will return null.	
+			null, 					
+			'description',					
+			null, 						
+			null, 				
+			null, 				
+			null, 					
+			null,				
+			null, 		
+			null,							
+			null, 						
+			null, 				
+			null, 							
+			null, 						
+			null 					
+		);
+
+		$confirm_returns_false = $task->isRemovableBy(new PersonnelId(1));
+
+		$this->assertFalse($confirm_returns_false);
+	}
+
+
 	public function test_If_ChangeTitle_Can_Change_The_Given_Title() {
 		
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->changeTitle('This title has changed!!!', new PersonnelId(1));
 
@@ -61,7 +133,7 @@ class TaskTest extends TestCase {
 
 		$this->expectException(TaskInsufficentPrivilegeForActionException::class);
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->changeTitle('new title will fail', new PersonnelId(2)); // unmatching updater id
 
@@ -73,7 +145,7 @@ class TaskTest extends TestCase {
 
 	public function test_If_Assigner_Can_Assign_A_Task_To_An_Assignee(){
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->assignTo(new PersonnelId(1), new PersonnelId(2));
 
@@ -86,7 +158,7 @@ class TaskTest extends TestCase {
 
 		$this->expectException(TaskInsufficentPrivilegeForActionException::class);
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->assignTo(new PersonnelId(2), new PersonnelId(2)); // assigner id doesnt match with the one on constructor
 
@@ -97,7 +169,7 @@ class TaskTest extends TestCase {
 
 	public function test_If_assignTo_Stores_Events() {
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->assignTo(new PersonnelId(1), new PersonnelId(2));
 
@@ -108,8 +180,7 @@ class TaskTest extends TestCase {
 
 	public function test_If_deAssignFrom_Removes_Assignment() {
 
-
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->assignTo(new PersonnelId(1), new PersonnelId(2));
 
@@ -119,9 +190,10 @@ class TaskTest extends TestCase {
 		$this->assertFalse($confirm_removed);
 	}
 
+
 	public function test_If_deAssignFrom_Stores_Events() {
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->assignTo(new PersonnelId(1), new PersonnelId(2));
 
@@ -136,7 +208,7 @@ class TaskTest extends TestCase {
 
 		$this->expectException(TaskInsufficentPrivilegeForActionException::class);
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->assignTo(new PersonnelId(1), new PersonnelId(2));	
 
@@ -147,7 +219,7 @@ class TaskTest extends TestCase {
 	public function test_If_changeDescription_Changes_Given_Description(){
 
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->changeDescription('Desc has changed!' , new PersonnelId(1));
 
@@ -160,7 +232,7 @@ class TaskTest extends TestCase {
 	public function test_If_changeDescription_Stores_Events() {
 
 		
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->changeDescription('Desc has changed!' , new PersonnelId(1));
 
@@ -174,7 +246,7 @@ class TaskTest extends TestCase {
 
 		$this->expectException(TaskInsufficentPrivilegeForActionException::class);
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->changeDescription('desc fail', new PersonnelId(2));
 
@@ -184,15 +256,50 @@ class TaskTest extends TestCase {
 
 	}
 
+	public function test_If_Assigner_Can_Change_The_StartDate(){
+
+		$task = $this->validTaskWithId(1);
+
+		$task->changeStartDate(new DateTime('now'), new PersonnelId(1));
+		$confirm_startdate_change = $task->startDate();
+
+		$this->assertTrue((new \DateTime())->getTimestamp() - $confirm_startdate_change->getTimestamp() < 5); 
+
+	}
+
+	public function test_If_changeStartDate_Stores_Events(){
+
+		$task = $this->validTaskWithId(1);
+
+		$task->changeStartDate(new DateTime(), new PersonnelId(1));
+		$confirm_event_stored = $task->events();
+
+		$this->assertNotEmpty($confirm_event_stored);
+
+	}
+
+	public function test_If_changeStartDate_Throws_Exception_When_UpdaterIds_Dont_Match(){
+		
+		$this->expectException(TaskInsufficentPrivilegeForActionException::class);
+
+		$task = $this->validTaskWithId(1);
+
+		$task->changeStartDate(new DateTime(), new PersonnelId(2));
+		$exception_collection = new ExceptionCollection($task->exceptions());
+
+		$this->throwFromExceptionCollection($exception_collection, TaskInsufficentPrivilegeForActionException::class);
+
+	}
+
 	public function testIf_Assigner_Can_Change_DueDate() {
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->changeDueDate(new \DateTime('now'), new PersonnelId(1));
 
-		$confirm_time = $task->dueDate();
+		$confirm_duedate_change = $task->dueDate();
 
-		$this->assertTrue((new \DateTime())->getTimestamp() - $confirm_time->getTimestamp() < 5); 
+		$this->assertTrue((new \DateTime())->getTimestamp() - $confirm_duedate_change->getTimestamp() < 5); 
 
 	}
 
@@ -200,7 +307,7 @@ class TaskTest extends TestCase {
 	public function test_If_changeDueDate_Stores_Events() {
 
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->changeDueDate(new \DateTime('now'), new PersonnelId(1));
 
@@ -215,7 +322,7 @@ class TaskTest extends TestCase {
 
 		$this->expectException(TaskInsufficentPrivilegeForActionException::class);
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
 		$task->changeDueDate(new DateTime('now'), new PersonnelId(2));
 
@@ -224,50 +331,50 @@ class TaskTest extends TestCase {
 
 	}
 
-	public function test_If_Assigner_Can_Change_Location() {
+	// public function test_If_Assigner_Can_Change_Location() {
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+	// 	$task = $this->validTaskWithId(1);
 
-		$task->changeLocation(new Location('latitude', 'longitude'), new PersonnelId(1));
+	// 	$task->changeLocation(new Location('latitude', 'longitude'), new PersonnelId(1));
 
-		$confirm_changed_location = $task->location();
+	// 	$confirm_changed_location = $task->location();
 
-		$this->assertNotEmpty($confirm_changed_location);
+	// 	$this->assertNotEmpty($confirm_changed_location);
 
-	}
-
-
-	public function test_If_changeLocation_Stores_Events() {
+	// }
 
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
-
-		$task->changeLocation(new Location('latitude', 'longitude'), new PersonnelId(1));
-
-		$confirm_event_stored = $task->events();
-		$this->assertNotEmpty($confirm_event_stored);
-	}
+	// public function test_If_changeLocation_Stores_Events() {
 
 
-	public function testIf_Throws_Exception_When_Location_UpdaterId_Doesnt_Match () {
+	// 	$task = $this->validTaskWithId(1);
 
-		$this->expectException(TaskInsufficentPrivilegeForActionException::class);
+	// 	$task->changeLocation(new Location('latitude', 'longitude'), new PersonnelId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+	// 	$confirm_event_stored = $task->events();
+	// 	$this->assertNotEmpty($confirm_event_stored);
+	// }
 
-		$task->changeLocation(new Location('a','b'), new PersonnelId(2));
 
-		$exception_collection = new ExceptionCollection($task->exceptions());
+	// public function testIf_Throws_Exception_When_Location_UpdaterId_Doesnt_Match () {
 
-		$this->throwFromExceptionCollection($exception_collection, TaskInsufficentPrivilegeForActionException::class);
+	// 	$this->expectException(TaskInsufficentPrivilegeForActionException::class);
 
-	}
+	// 	$task = $this->validTaskWithId(1);
+
+	// 	$task->changeLocation(new Location('a','b'), new PersonnelId(2));
+
+	// 	$exception_collection = new ExceptionCollection($task->exceptions());
+
+	// 	$this->throwFromExceptionCollection($exception_collection, TaskInsufficentPrivilegeForActionException::class);
+
+	// }
 
 	public function test_If_Create_SubTask_Creates_SubTask() {
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
-		$task->createSubtask('subtask-title', new PersonnelId(1), null, null, null, null, TaskPriority::Clear(), TaskStatus::Open());
+		$task->createSubtask('subtask-title', new PersonnelId(1), null, null,null, null, null, TaskPriority::Clear(), TaskStatus::Open());
 
 		$confirm_subtask_created = $task->subtasks();
 		$this->assertNotEmpty($confirm_subtask_created);
@@ -277,9 +384,9 @@ class TaskTest extends TestCase {
 
 	public function test_If_createSubtask_Stores_Events() {
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, null, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1);
 
-		$task->createSubtask('subtask-title', new PersonnelId(1), null, null, null, null, TaskPriority::Clear(), TaskStatus::Open());
+		$task->createSubtask('subtask-title', new PersonnelId(1), null, null, null, null, null, TaskPriority::Clear(), TaskStatus::Open());
 
 		$confirm_event_stored = $task->events();
 		$this->assertNotEmpty($confirm_event_stored);
@@ -288,10 +395,9 @@ class TaskTest extends TestCase {
 
 	public function testIf_Remove_Subtask_Removes_Existing_Subtask() {
 		
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null,null,null,null,null, null,null,null,null,null, new DateTime('now')));
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1, null, $subtask_arr);
 
 		$task->removeSubtask(new SubtaskId(1), new PersonnelId(1));
 		$check_empty = $task->subtasks();
@@ -302,10 +408,9 @@ class TaskTest extends TestCase {
 
 	public function test_If_removeSubtask_Stores_Events() {
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null,null,null,null,null, null,null,null,null,null, new DateTime('now')));
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1,null, $subtask_arr);
 
 		$task->removeSubtask(new SubtaskId(1), new PersonnelId(1));
 
@@ -319,10 +424,9 @@ class TaskTest extends TestCase {
 		
 		$this->expectException(TaskRemoveSubtaskPrivilegeException::class);
 		
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null,null,null,null,null, null,null,null,null,null, new DateTime('now')));
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1, null, $subtask_arr);
 
 		$task->removeSubtask(new SubtaskId(1), new PersonnelId(2));
 
@@ -334,11 +438,9 @@ class TaskTest extends TestCase {
 
 	public function testIf_Change_Subtask_Title_Changes_The_Title() {
 
-		 $subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null ,null,null,null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		 $subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1,null,$subtask_arr);
 
 		$task->changeSubtaskTitle(new SubtaskId(1), 'changed_title', new PersonnelId(1));
 
@@ -354,11 +456,9 @@ class TaskTest extends TestCase {
 
 		 $this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		 $subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null ,null,null,null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		 $subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1, null, $subtask_arr);
 
 		$task->changeSubtaskTitle(new SubtaskId(1), 'changed_title', new PersonnelId(2));
 
@@ -368,11 +468,9 @@ class TaskTest extends TestCase {
 
 	public function testIf_isAssignerOfASubtask_Returns_True_When_AssignerIds_Match() {
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(1) ,null,null,null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1,null,$subtask_arr);
 
 		$confirm_assigner_subtask = $task->isAssignerOfASubtask(new PersonnelId(1));
 		$this->assertTrue($confirm_assigner_subtask);
@@ -381,11 +479,9 @@ class TaskTest extends TestCase {
 
 	public function testIf_isAssignerOfASubtask_Returns_False_When_AssignerIds_Doesnt_Match() {
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(1) ,null,null,null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1, null, $subtask_arr);
 
 		$confirm_assigner_subtask = $task->isAssignerOfASubtask(new PersonnelId(2)); //wrong assigner id given
 		$this->assertFalse($confirm_assigner_subtask);
@@ -394,11 +490,9 @@ class TaskTest extends TestCase {
 
 	public function testassignSubtaskTo_Assigns_Subtask_To_Assignee() {
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null ,null,null,null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1, null, $subtask_arr);
 
 		$task->assignSubtaskTo(new SubtaskId(1), new PersonnelId(1), new PersonnelId(1));
 
@@ -411,11 +505,9 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null ,null,null,null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1, null, $subtask_arr);
 
 		$task->assignSubtaskTo(new SubtaskId(1), new PersonnelId(1), new PersonnelId(2));
 
@@ -429,11 +521,9 @@ class TaskTest extends TestCase {
 	public function testdeassignSubtaskFrom_Removes_Assigned_Subtask(){
 
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null ,null,null,null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1, null, $subtask_arr);
 
 		$task->assignSubtaskTo(new SubtaskId(1), new PersonnelId(1), new PersonnelId(1));
 
@@ -448,11 +538,9 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null ,null,null,null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1, null, $subtask_arr);
 
 		$task->assignSubtaskTo(new SubtaskId(1), new PersonnelId(1), new PersonnelId(1));
 
@@ -468,11 +556,9 @@ class TaskTest extends TestCase {
 		$assignee_arr = array(
 			new PersonnelId(2)
 		);
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', null , $assignee_arr ,null,null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1,$assignee_arr));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1, null, $subtask_arr);
 
 		$confirm_assignee = $task->isAssigneeOfASubtask(new PersonnelId(2));
 		$this->assertTrue($confirm_assignee);
@@ -482,13 +568,13 @@ class TaskTest extends TestCase {
 
 	public function test_If_changeSubtaskDescription_Changes_The_Description() {
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 
+		$subtask_arr[0]->isAssigner(new PersonnelId(1));
 
-		$task->changeSubtaskDescription(new SubtaskId(1) , 'this is the new description!' , new PersonnelId(2));
+		$task = $this->validTaskWithId(1,null, $subtask_arr); 
+
+		$task->changeSubtaskDescription(new SubtaskId(1) , 'this is the new description!' , new PersonnelId(1));
 		$get_subtask = $task->subtasks();
 		$desc_of_subtask = $get_subtask[0]->description();
 
@@ -501,11 +587,9 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 
+		$task = $this->validTaskWithId(1,null, $subtask_arr); 
 
 		$task->changeSubtaskDescription(new SubtaskId(1) , 'this is the new description!' , new PersonnelId(3));
 
@@ -516,13 +600,11 @@ class TaskTest extends TestCase {
 
 	public function test_If_changeSubtaskDueDate_Can_Alter_Subtask_DueDate() {
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 
 
-		$task->changeSubtaskDueDate(New SubtaskId(1), new DateTime('now'), new PersonnelId(2));
+		$task->changeSubtaskDueDate(New SubtaskId(1), new DateTime('now'), new PersonnelId(1));
 
 		$get_subtask = $task->subtasks();
 		$subtask_time = $get_subtask[0]->dueDate();
@@ -533,15 +615,13 @@ class TaskTest extends TestCase {
 
 	}
 
-	public function testchangeSubtaskDueDate_Throws_An_Exception_If_UpdaterId_Doesnt_Match() {
+	public function test_changeSubtaskDueDate_Throws_An_Exception_If_UpdaterId_Doesnt_Match() {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 
 
 		$task->changeSubtaskDueDate(New SubtaskId(1), new DateTime('now'), new PersonnelId(3));
 
@@ -551,48 +631,42 @@ class TaskTest extends TestCase {
 
 	}
 
-	public function testIf_changeSubtaskLocation_Changes_The_Location(){
+	// public function testIf_changeSubtaskLocation_Changes_The_Location(){
 
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+	// 	$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 
+	// 	$task = $this->validTaskWithId(1,null,$subtask_arr); 
 
-		$task->changeSubtaskLocation(new SubtaskId(1), new Location('first', 'second'), new PersonnelId(2));
+	// 	$task->changeSubtaskLocation(new SubtaskId(1), new Location('first', 'second'), new PersonnelId(1));
 
-		$get_subtask = $task->subtasks();
-		$confirm_changed_location = $get_subtask[0]->location();
-		$this->assertNotEmpty($confirm_changed_location);
-	}
+	// 	$get_subtask = $task->subtasks();
+	// 	$confirm_changed_location = $get_subtask[0]->location();
+	// 	$this->assertNotEmpty($confirm_changed_location);
+	// }
 
-	public function testIf_changeSubtaskLocation_Throws_Exception_When_UpdaterIds_Doesnt_Match() {
+	// public function testIf_changeSubtaskLocation_Throws_Exception_When_UpdaterIds_Doesnt_Match() {
 
-		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
+	// 	$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+	// 	$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 
+	// 	$task = $this->validTaskWithId(1,null,$subtask_arr); 
 
-		$task->changeSubtaskLocation(new SubtaskId(1), new Location('first', 'second'), new PersonnelId(3));
+	// 	$task->changeSubtaskLocation(new SubtaskId(1), new Location('first', 'second'), new PersonnelId(1));
 
-		$exception_collection = new ExceptionCollection($task->exceptions());
+	// 	$exception_collection = new ExceptionCollection($task->exceptions());
 
-		$this->throwFromExceptionCollection($exception_collection, SubtaskInsufficentPrivilegeForActionException::class);
+	// 	$this->throwFromExceptionCollection($exception_collection, SubtaskInsufficentPrivilegeForActionException::class);
 
-	}
+	// }
 
 	public function testIf_changeSubtaskPriority_Changes_Given_Priority() {
 
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(1), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
 		$task->changeSubtaskPriority(new SubtaskId(1), TaskPriority::Medium() , new PersonnelId(1));
 
@@ -607,13 +681,11 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
-		$task->changeSubtaskPriority(new SubtaskId(1), TaskPriority::Medium() , new PersonnelId(1));
+		$task->changeSubtaskPriority(new SubtaskId(1), TaskPriority::Medium() , new PersonnelId(2));
 
 		$exception_collection = new ExceptionCollection($task->exceptions());
 
@@ -623,13 +695,11 @@ class TaskTest extends TestCase {
 	public function testIf_openSubtask_Allows_Updater_To_Change_Status_As_Open(){ 
 
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1, null, $subtask_arr); 	
 
-		$task->openSubtask(new SubtaskId(1), new PersonnelId(2));
+		$task->openSubtask(new SubtaskId(1), new PersonnelId(1));
 
 		$get_subtask = $task->subtasks();
 		$firstarray_of_subtask = $get_subtask[0]->status();
@@ -642,11 +712,9 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
 		$task->openSubtask(new SubtaskId(1), new PersonnelId(4));
 
@@ -658,13 +726,11 @@ class TaskTest extends TestCase {
 	public function testIf_markSubtaskAsInProgress_Allows_Updater_To_Change_Status_As_InProgress(){ 
 
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
-		$task->markSubtaskAsInProgress(new SubtaskId(1), new PersonnelId(2));
+		$task->markSubtaskAsInProgress(new SubtaskId(1), new PersonnelId(1));
 
 		$get_subtask = $task->subtasks();
 		$firstarray_of_subtask = $get_subtask[0]->status();
@@ -677,11 +743,9 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
 		$task->markSubtaskAsInProgress(new SubtaskId(1), new PersonnelId(4));
 
@@ -693,13 +757,11 @@ class TaskTest extends TestCase {
 	public function testIf_delaySubtask_Allows_Updater_To_Change_Status_As_InProgress(){ 
 
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
-		$task->delaySubtask(new SubtaskId(1), new PersonnelId(2));
+		$task->delaySubtask(new SubtaskId(1), new PersonnelId(1));
 
 		$get_subtask = $task->subtasks();
 		$firstarray_of_subtask = $get_subtask[0]->status();
@@ -712,11 +774,9 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
 		$task->delaySubtask(new SubtaskId(1), new PersonnelId(4));
 
@@ -729,13 +789,11 @@ class TaskTest extends TestCase {
 	public function testIf_completeSubtask_Allows_Updater_To_Change_Status_As_InProgress(){ 
 
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
-		$task->completeSubtask(new SubtaskId(1), new PersonnelId(2));
+		$task->completeSubtask(new SubtaskId(1), new PersonnelId(1));
 
 		$get_subtask = $task->subtasks();
 		$firstarray_of_subtask = $get_subtask[0]->status();
@@ -748,11 +806,9 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
 		$task->completeSubtask(new SubtaskId(1), new PersonnelId(4));
 
@@ -764,13 +820,11 @@ class TaskTest extends TestCase {
 	public function testIf_cancelSubtask_Allows_Updater_To_Change_Status_As_InProgress(){ 
 
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
-		$task->cancelSubtask(new SubtaskId(1), new PersonnelId(2));
+		$task->cancelSubtask(new SubtaskId(1), new PersonnelId(1));
 
 		$get_subtask = $task->subtasks();
 		$firstarray_of_subtask = $get_subtask[0]->status();
@@ -784,11 +838,9 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskInsufficentPrivilegeForActionException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 	
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 	
 
 		$task->cancelSubtask(new SubtaskId(1), new PersonnelId(4));
 
@@ -800,13 +852,11 @@ class TaskTest extends TestCase {
 	public function testIf_commentOnSubtask_Adds_Comment_To_Subtask() {
 
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 
 
-		$task->commentOnSubtask(new SubtaskId(1), new PersonnelId(2), 'this is a subtask comment');
+		$task->commentOnSubtask(new SubtaskId(1), new PersonnelId(1), 'this is a subtask comment');
 
 		$get_subtask = $task->subtasks();
 		$confirm_comment_added = $get_subtask[0]->comments();
@@ -818,11 +868,9 @@ class TaskTest extends TestCase {
 
 		$this->expectException(SubtaskCommentPrivilegeException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null, 'description', null, null, $subtask_arr, null,null, null, null, null, null, null); 
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 
 
 		$task->commentOnSubtask(new SubtaskId(1), new PersonnelId(4), 'this is a subtask comment');
 
@@ -838,13 +886,11 @@ class TaskTest extends TestCase {
 			new Comment(New CommentId(1), new PersonnelId(3), 'this is a new comment', new DateTime('now'), new DateTime('now'))
 		);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,$comment_arr,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1,null,$comment_arr));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null , 'description', null , null, $subtask_arr, null,null, null, null, null, null, null); 
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 
 
-		$task->editSubtaskComment(new SubtaskId(1), new CommentId(1), 'changed subtask comment', new PersonnelId(2));
+		$task->editSubtaskComment(new SubtaskId(1), new CommentId(1), 'changed subtask comment', new PersonnelId(1));
 
 		$get_subtask = $task->subtasks();
 		$confirm_comment_added = $get_subtask[0]->comments();
@@ -858,12 +904,9 @@ class TaskTest extends TestCase {
 			new Comment(New CommentId(1), new PersonnelId(3), 'this is a new comment', new DateTime('now'), new DateTime('now'))
 		);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,$comment_arr,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1,null,$comment_arr));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null , 'description', null , null, $subtask_arr, null,null, null, null, null, null, null); 
-
+		$task = $this->validTaskWithId(1,null,$subtask_arr); 
 
 		$task->removeSubtaskComment(new SubtaskId(1), new CommentId(1), new PersonnelId(5));
 
@@ -876,30 +919,26 @@ class TaskTest extends TestCase {
 
 	public function testIf_taskAttachment_Adds_Attachment_To_Subtask(){
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null , 'description', null , null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1,null,$subtask_arr);
 
 		$task->addSubtaskAttachment(new SubtaskId(1), 'base64' , 'new attachment', new PersonnelId(2));
 
 		$get_subtask = $task->subtasks();
-		$confirm_attachment_added = $get_subtask[0]->attachments();
+		$attachment_added = $get_subtask[0]->attachments();
 
-		$this->assertNotEmpty($confirm_attachment_added);
-
+		$this->assertEquals($attachment_added[0]->name(), 'new attachment');
 	}
+
 
 	public function test_addSubtaskAttachment_Throws_Exception_When_Updater_Has_No_Access(){
 
 		$this->expectException(SubtaskAttachmentPrivilegeException::class);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null,null,null,null, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null , 'description', null , null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1,null,$subtask_arr);
 
 		$task->addSubtaskAttachment(new SubtaskId(1), 'base64' , 'new attachment', new PersonnelId(6));
 
@@ -913,13 +952,10 @@ class TaskTest extends TestCase {
 			new Attachment(new AttachmentId(1), new PersonnelId(1), 'entanglements', 'base64', new DateTime('now'))
 		);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null, null, null, $attachment_arr, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1,null,null,$attachment_arr));
+		$task = ($this->validTaskWithId(1,null,$subtask_arr));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null , 'description', null , null, $subtask_arr, null,null, null, null, null, null, null);
-
-		$task->removeSubtaskAttachment(new SubtaskId(1), new AttachmentId(1), new PersonnelId(2));
+		$task->removeSubtaskAttachment(new SubtaskId(1), new AttachmentId(1), new PersonnelId(1));
 
 		$get_subtask = $task->subtasks();
 		$confirm_attachment_removed = $get_subtask[0]->attachments();
@@ -936,11 +972,9 @@ class TaskTest extends TestCase {
 			new Attachment(new AttachmentId(1), new PersonnelId(1), 'entanglements', 'base64', new DateTime('now'))
 		);
 
-		$subtask_arr = array(
-			new Subtask(new SubtaskId(1), null, 'title1', new PersonnelId(2) ,null,'desc_of_subtask',null,null, null,null, null, null, $attachment_arr, new DateTime('now'))
-		);
+		$subtask_arr = array($this->validSubtaskWithId(1,null,null,$attachment_arr));
 
-		$task = new Task(new TaskId(1), 'title', new PersonnelId(3), null , 'description', null , null, $subtask_arr, null,null, null, null, null, null, null);
+		$task = $this->validTaskWithId(1,null,$subtask_arr);
 
 		$task->removeSubtaskAttachment(new SubtaskId(1), new AttachmentId(1), new PersonnelId(4));
 
