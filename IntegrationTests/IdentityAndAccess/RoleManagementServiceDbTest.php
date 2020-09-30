@@ -17,6 +17,7 @@ class RoleManagementServiceDbTest extends TestCase{
 
 	private static \DB $db;
 	private static $jwToken;
+	private $role_management_service;
 
  	public static function setUpBeforeClass() : void {
     	
@@ -37,7 +38,7 @@ class RoleManagementServiceDbTest extends TestCase{
        self::$db->command("DELETE FROM personnel");
 	}
 
-	public function test_getRole_Returns_Role_From_Db(){
+	protected function setUp() : void{
 
 		$submodule_repository = new SubmoduleRepository();
 		$module_repository = new ModuleRepository();
@@ -46,11 +47,14 @@ class RoleManagementServiceDbTest extends TestCase{
 		$personnel_repository = new PersonnelRepository(self::$db, null);
 	 	$role_repository = new RoleRepository(self::$db, null);
 
-	 	$role_management_service = new RoleManagementService(
+	 	$this->role_management_service = new RoleManagementService(
 	 		$personnel_repository, $role_repository, $submodule_service
 	 	);
+	}
 
-	 	$role = $role_management_service->getRole(1);
+	public function test_getRole_Returns_Role_From_Db(){
+
+	 	$role = $this->role_management_service->getRole(1);
 
 	 	$id = $role->id();
 	 	$name = $role->name();
@@ -61,37 +65,22 @@ class RoleManagementServiceDbTest extends TestCase{
 
 	public function test_If_getRoles_Returns_Existing_Roles_On_Db(){
 
-		$submodule_repository = new SubmoduleRepository();
-		$module_repository = new ModuleRepository();
+	 	$roles_dto = $this->role_management_service->getRoles(new QueryObject());
 
-		$submodule_service = new SubmoduleService($submodule_repository, $module_repository);
-		$personnel_repository = new PersonnelRepository(self::$db, null);
-	 	$role_repository = new RoleRepository(self::$db, null);
+	 	$roles_arr = json_decode(json_encode($roles_dto), true);
+	 	
+	 	$first_role_id = $roles_arr['roles'][0]['id'];
+	 	$second_role_id = $roles_arr['roles'][1]['id'];
 
-	 	$role_management_service = new RoleManagementService(
-	 		$personnel_repository, $role_repository, $submodule_service
-	 	);
-
-	 	$roles = $role_management_service->getRoles(new QueryObject());
-	 	$this->assertNotEmpty($roles);
+	 	$this->assertEquals($first_role_id, 1);
+	 	$this->assertEquals($second_role_id, 2);
 	}
 
 	public function test_registerRole_Creates_A_New_Role_And_Returns_Its_Id(){
 
-		$submodule_repository = new SubmoduleRepository();
-		$module_repository = new ModuleRepository();
 
-		$submodule_service = new SubmoduleService($submodule_repository, $module_repository);
-		$personnel_repository = new PersonnelRepository(self::$db, null);
-	 	$role_repository = new RoleRepository(self::$db, null);
-
-	 	$role_management_service = new RoleManagementService(
-	 		$personnel_repository, $role_repository, $submodule_service
-	 	);
-
-	 	$privilege_dto = new PrivilegeDTO(1,true,true,true);
-	 	$privileges = array($privilege_dto);
-	 	$role_id = $role_management_service->registerRole('role_name_3' , $privileges);
+	 	$privileges = array(new PrivilegeDTO(4,true,true,true)); /* 4 : submodule_id on db */
+	 	$role_id = $this->role_management_service->registerRole('role_name_3' , $privileges);
 
 	 	$role_id_from_db = self::$db->query("SELECT * FROM role WHERE id = :id", array(
 	 		':id' => $role_id
@@ -103,22 +92,11 @@ class RoleManagementServiceDbTest extends TestCase{
 
 	public function test_If_updateRole_Updates_Creates_Role(){
 
-		$submodule_repository = new SubmoduleRepository();
-		$module_repository = new ModuleRepository();
-
-		$submodule_service = new SubmoduleService($submodule_repository, $module_repository);
-		$personnel_repository = new PersonnelRepository(self::$db, null);
-	 	$role_repository = new RoleRepository(self::$db, null);
-
-	 	$role_management_service = new RoleManagementService(
-	 		$personnel_repository, $role_repository, $submodule_service
-	 	);
-
-	 	$privilege_dto = new PrivilegeDTO(1,true,true,true);
+	 	$privilege_dto = new PrivilegeDTO(4,true,true,true);
 	 	$privileges = array($privilege_dto);
-	 	$role_id = $role_management_service->registerRole('role_4' , $privileges);
+	 	$role_id = $this->role_management_service->registerRole('role_4' , $privileges);
 
-	 	$role_management_service->updateRole($role_id, 'role_name_4', $privileges);
+	 	$this->role_management_service->updateRole($role_id, 'role_name_4', $privileges);
 
 	 	$db_role_update = self::$db->query("SELECT * FROM role WHERE id = :id", array(
 	 		':id' => $role_id
@@ -127,42 +105,23 @@ class RoleManagementServiceDbTest extends TestCase{
 	 	$this->assertEquals($db_role_update, 'role_name_4');
 	}
 
+
 	public function test_If_removeRole_Removes_Created_Role(){
 
-		$submodule_repository = new SubmoduleRepository();
-		$module_repository = new ModuleRepository();
 
-		$submodule_service = new SubmoduleService($submodule_repository, $module_repository);
-		$personnel_repository = new PersonnelRepository(self::$db, null);
-	 	$role_repository = new RoleRepository(self::$db, null);
-
-	 	$role_management_service = new RoleManagementService(
-	 		$personnel_repository, $role_repository, $submodule_service
-	 	);
-
-	 	$privilege_dto = new PrivilegeDTO(1,true,true,true);
+	 	$privilege_dto = new PrivilegeDTO(4,true,true,true);
 	 	$privileges = array($privilege_dto);
-	 	$role_id = $role_management_service->registerRole('role_4' , $privileges);
+	 	$role_id = $this->role_management_service->registerRole('role_4' , $privileges);
 
-	 	$role_management_service->removeRole($role_id);
+	 	$this->role_management_service->removeRole($role_id);
 
 	 	$this->assertEmpty(self::$db->query("SELECT * FROM role WHERE id = :id", array(
 	 		':id' => $role_id
 	 	))->row);
 	}
 
+
 	public function test_If_getPersonnelRole_Returns_Personnels_Role(){
-
-		$submodule_repository = new SubmoduleRepository();
-		$module_repository = new ModuleRepository();
-
-		$submodule_service = new SubmoduleService($submodule_repository, $module_repository);
-		$personnel_repository = new PersonnelRepository(self::$db, null);
-	 	$role_repository = new RoleRepository(self::$db, null);
-
-	 	$role_management_service = new RoleManagementService(
-	 		$personnel_repository, $role_repository, $submodule_service
-	 	);
 
 	 	self::$db->insert('personnel' , array(
 	 		'id' => 1,
@@ -173,14 +132,14 @@ class RoleManagementServiceDbTest extends TestCase{
 	 		'lastname' => 'pickaring',
 	 		'tcno' => '11223344550',
 	 		'gender' => 'male',
-	 		'phone' => '+90 5142021490',
+	 		'phone' => '+40 5142021490',
 	 		'email' => 'ronnie@pickaring.co.uk',
 	 		'is_active' => true,
 	 		'date_added' => (new DateTime())->format('Y-m-d H:i:s'),
 	 		'last_modification' => (new DateTime())->format('Y-m-d H:i:s')
 	 	));
 
-	 	$role = $role_management_service->getPersonnelRole(1);
+	 	$role = $this->role_management_service->getPersonnelRole(1);
 
 	 	$id = $role->id();
 	 	$name = $role->name();
