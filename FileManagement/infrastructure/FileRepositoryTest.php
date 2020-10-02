@@ -1,4 +1,3 @@
-
 <?php
 
 use \model\FileManagement\infrastructure\FileRepository;
@@ -8,15 +7,15 @@ use \model\FileManagement\domain\model\DirectoryId;
 use \model\FileManagement\domain\model\Directory;
 use \model\FileManagement\domain\model\File;
 use \model\FileManagement\domain\model\FileId;
-use \model\common\QueryObject;
 
+use \model\common\QueryObject;
 use PHPUnit\Framework\TestCase;
 
 
 class FileRepositoryTest extends TestCase {
 
 	private static \DB $db;
-	private static IFileRepository $file_repository;
+	private $file_repository_instance;
 
 	private IRootDirectoryLocator $locator;
 	private IRootDirectoryLocator $bin_locator;
@@ -35,10 +34,11 @@ class FileRepositoryTest extends TestCase {
         );
 
         self::$db->command("DELETE FROM directory");
+		self::$db->command("DELETE FROM directory_bin");
         self::$db->command("DELETE FROM file");
+        self::$db->command("DELETE FROM directory_bin");
 
 
-		
         $clear_files = glob('./role_root_dir/*'); // prevents folder dup.
  			
  			foreach($clear_files as $file){ 
@@ -58,7 +58,6 @@ class FileRepositoryTest extends TestCase {
     			else
     				self::rrmdir($file);
 		}
-
 	}
 
 	/**
@@ -86,320 +85,528 @@ class FileRepositoryTest extends TestCase {
     }
 
 	protected function setUp() : void {
+
         $this->locator = $this->createMock(IRootDirectoryLocator::class);
         $this->locator->method('getRootDirectoryFor')->willReturn('./role_root_dir/');
 
         $this->bin_locator = $this->createMock(IRootDirectoryLocator::class);
         $this->bin_locator->method('getRootDirectoryFor')->willReturn('./role_root_bin_dir/');
 
-	}
-
-
-	public function testIfSaveDirectoryCreatesDirectoryOnDbAndFolder() { 
-
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
-		
-		$directory_id = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), null, 'folder-1', null));
-
-		$check_folder_repo = self::$db->query("SELECT * FROM directory WHERE id = :id", array(
-			':id'=>$directory_id->getId()
-		))->row;
-
-		$this->assertNotEmpty($check_folder_repo);	//checks db not empty.
-
-		$folder = $this->locator->getRootDirectoryFor(new SubmoduleId(1)) . $directory_id->getId(); 
-
-		$folder_exists = file_exists($folder);
-
-		$this->assertNotEmpty($folder);      //checks folders not empty.
-		
+        $this->file_repository = new FileRepository(self::$db, $this->locator, $this->bin_locator);
 
 	}
 
 
-	public function testIfSaveDirectoryCreatedDirectoryWithParentId () { 
+	public function test_If_saveDirectory_Creates_A_Folder_And_Returns_Its_Id() { 
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
-
-		$parent_id = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), null, 'parent', null));
 		
-		$directory_id = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), $parent_id, 'folder-1', null));
+		$id_obj = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(1), 
+			null, 
+			'New Folder 1', 
+			null
+		));
 
-		$check_folder_repo = self::$db->query("SELECT * FROM directory WHERE id = :id", array(
-			':id'=>$directory_id->getId()
-		))->row;
+		$id = $id_obj->getId();
 
-		$this->assertNotEmpty($check_folder_repo);	
+		$db_id = self::$db->query("SELECT * FROM directory WHERE id = '$id'")->row['id'];
 
-		$folder = $this->locator->getRootDirectoryFor(new SubmoduleId(1)) . $directory_id->getId(); 
+		$this->assertEquals($id, $db_id); /* assert created folder id matches with the one on db */ 
 
-		$folder_exists = file_exists($folder);
+		$folder = $this->locator->getRootDirectoryFor(new SubmoduleId(1)) . $id_obj->getId(); 
 
-		$this->assertNotEmpty($folder);      
-		
+		$this->assertFileExists($folder);
 
+		$this->assertEquals($folder, './role_root_dir/' . $id);
+				
 	}
 
 
-	public function testIfRemoveDirectoryDeletesTheDirectory() {
+	public function test_If_Save_Directory_Created_Directory_With_Parent_Id() { 
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
 
-		$directory_id = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(2), null, 'folder-7', null));
+		$parent_directory_id = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(1), 
+			null, 
+			'Parent Directory', 
+			null
+		));
+		
+		$child_directory_id = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(1), 
+			$parent_directory_id, 
+			'Child Directory', 
+			null
+		));
 
-		$file_repository->removeDirectory($directory_id, new SubmoduleId(2));
+		$child_directory_db_id = self::$db->query("SELECT * FROM directory WHERE id = :id", array(
+			':id'=>$child_directory_id->getId()
+		))->row['id'];
 
-		$check_folder_repo = self::$db->query("SELECT * FROM directory WHERE id = :id", array(
+		$this->assertEquals($child_directory_id->getId(), $child_directory_db_id);	
+
+		$folder = $this->locator->getRootDirectoryFor(new SubmoduleId(1)) . $parent_directory_id->getId(); 
+
+
+
+		$this->assertFileExists($folder);
+
+		$this->assertEquals($folder, './role_root_dir/' . $parent_directory_id->getId());
+		
+	}
+
+	public function test_If_removeDirectory_Deletes_The_Directory_And_Carries_It_To_Directory_Bin() {
+
+
+		$directory_id = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(2), 
+			null, 
+			'New Folder 2',
+			null
+		));
+
+		$this->file_repository->removeDirectory($directory_id, new SubmoduleId(2));
+
+		$directory_db = self::$db->query("SELECT * FROM directory WHERE id = :id", array(
 			':id'=>$directory_id->getId()
 		))->row;
 
-		$this->assertEmpty($check_folder_repo);
+		$this->assertEmpty($directory_db);
 
 		$folder = $this->locator->getRootDirectoryFor(new SubmoduleId(2)) . $directory_id->getId(); 
 
-		$folder_deleted = file_exists($folder);
+		$this->assertFileDoesNotExist($folder, "./role_root_dir/" . $directory_id->getId());
 
-		$this->assertFalse($folder_deleted);
-
+		$folder_bin = $this->bin_locator->getRootDirectoryFor(new SubmoduleId(2)) . $directory_id->getId();
+		$this->assertFileExists($folder_bin, "./role_root_bin_dir/" . $directory_id->getId());
 
 	}
 
 
-	public function testIfSaveFileCreatesFileOnDbAndFolder() {
+	public function test_If_removeDirectory_Deletes_The_Directory_And_Carries_It_To_Db_Directory_Bin(){
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
+		$directory_id = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(2), 
+			null, 
+			'New Folder 2',
+			null
+		));
 
-		$file_id = $file_repository->saveFile(new File(null, new SubmoduleId(1), null, 'base64', 'test-file', null));
+		$this->file_repository->removeDirectory($directory_id, new SubmoduleId(2));
 
-		$check_file_repo = self::$db->query("SELECT * FROM file WHERE id = :id", array(
-			':id'=>$file_id->getId()
+		$directory_db = self::$db->query("SELECT * FROM directory WHERE id = :id", array(
+			':id'=>$directory_id->getId()
 		))->row;
 
-		$this->assertNotEmpty($check_file_repo);
+		$this->assertEmpty($directory_db);
+
+		$id = $directory_id->getId();
+
+		$directory_bin_id = self::$db->query("SELECT * FROM directory_bin WHERE id = '$id'")->row['id'];
+
+		$this->assertEquals($directory_bin_id, $directory_id->getId());
+	}
+
+
+	public function test_If_saveFile_Creates_File_On_Db_And_Folder() {
+
+
+		$file_id = $this->file_repository->saveFile(new File(
+			null, 
+			new SubmoduleId(1), 
+			null, 
+			'base64', 
+			'New File 1', 
+			null
+		));
+
+		$file_db_id = self::$db->query("SELECT * FROM file WHERE id = :id", array(
+			':id'=>$file_id->getId()
+		))->row['id'];
+
+		$this->assertEquals($file_db_id, $file_id->getId());
 
 		$file = $this->locator->getRootDirectoryFor(new SubmoduleId(1)) . $file_id->getId();
-
-		$folder_exists = file_exists($file);
-
-		$this->assertNotEmpty($file);
-
-
+		$this->assertEquals($file, './role_root_dir/' . $file_id->getId());
 
 	}
 
-	public function testIfSaveFileSavedTheFileWithParentId () {
+	public function test_If_saveFile_Saved_The_File_With_Parent_Id() {
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
 
-		$parent_id = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(2), null, 'folderx', null));
+		$directory_id = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(2), 
+			null, 
+			'Parent Directory 2', 
+			null
+		));
 
-		$file_id = $file_repository->saveFile(new File(null, new SubmoduleId(2), $parent_id, 'base64', 'filex', null));
+		$file_id = $this->file_repository->saveFile(new File(
+			null, 
+			new SubmoduleId(2), 
+			$directory_id,
+			'base64', 
+			'Child File', 
+			null
+		));
+
 	
-		$check_file_repo = self::$db->query("SELECT * FROM file WHERE id = id" ,array(
+		$file_db_id = self::$db->query("SELECT * FROM file WHERE id = :id" ,array(
+			':id' => $file_id->getId()
+		))->row['id'];
+
+		$this->assertEquals($file_id->getId(), $file_db_id);
+
+		$file_db = self::$db->query("SELECT * FROM file WHERE id = :id" ,array(
 			':id' => $file_id->getId()
 		))->row;
 
-		$this->assertNotEmpty($check_file_repo);
+		$this->assertEquals($directory_id->getId(), $file_db['directory_id']);
+
+		$file = $this->locator->getRootDirectoryFor(new SubmoduleId(2)) . $directory_id->getId();
+
+		$this->assertFileExists($file);
+
+		$this->assertEquals($file, './role_root_dir/' . $directory_id->getId());
+
+		return $file_id;
+	}
+
+	public function test_If_Remove_File_Deletes_The_File_And_Carries_It_To_Bin_Folder() {
+
+
+		$file_id = $this->file_repository->saveFile(new File(
+			null, 
+			new SubmoduleId(2), 
+			null, 
+			'base64', 
+			'test-file.jpg', 
+			null
+		));
+
+		$this->file_repository->removeFile($file_id, new SubmoduleId(2));
+
+		$file = $this->locator->getRootDirectoryFor(new SubmoduleId(2)) . $file_id->getId();
+		$this->assertFileDoesNotExist($file, "./role_root_dir/" . $file_id->getId());
+
+
+		$file_bin = $this->bin_locator->getRootDirectoryFor(new SubmoduleId(2)) . $file_id->getId();
+		$this->assertFileExists("./role_root_bin_dir/" . $file_id->getId() . '.jpg');
+	
+	}
+
+
+	public function test_If_Remove_File_Deletes_The_File_And_Carries_It_To_Db_File_Bin(){
+
+		$file_id = $this->file_repository->saveFile(new File(
+			null, 
+			new SubmoduleId(2), 
+			null, 
+			'base64', 
+			'test-file-2.jpg', 
+			null
+		));
+
+		$this->file_repository->removeFile($file_id, new SubmoduleId(2));
+
+		$file_removed = self::$db->query("SELECT * FROM file WHERE id = :id", array(
+			':id' => $file_id->getId()
+		))->row;
+
+		$this->assertEmpty($file_removed);
+
+		$file_bin_id = self::$db->query("SELECT * FROM file_bin WHERE id = :id", array(
+			':id' => $file_id->getId()
+		))->row['id'];
+
+		$this->assertEquals($file_bin_id, $file_id->getId());
+	}
+
+
+	public function test_Files_Can_Be_Removed_If_The_Extension_Is_Null() {
+
+
+		$file_id = $this->file_repository->saveFile(new File(
+			null, 
+			new SubmoduleId(2), 
+			null, 
+			'base13', 
+			'test-null', 
+			null
+		));
+
+		$this->file_repository->removeFile($file_id, new SubmoduleId(2));
+
+		$file_removed = self::$db->query("SELECT * FROM file WHERE id = :id", array(
+			':id' => $file_id->getId()
+		))->row;
+		
+		$this->assertEmpty($file_removed);
+
+		$file_bin_id = self::$db->query("SELECT * FROM file_bin WHERE id = :id" , array(
+			':id' => $file_id->getId()
+		))->row['id'];
+
+		$this->assertEquals($file_bin_id, $file_id->getId());
 
 		$file = $this->locator->getRootDirectoryFor(new SubmoduleId(2)) . $file_id->getId();
 
-		$folder_exists = file_exists($file);
+		$this->assertFileDoesNotExist($file);
 
-		$this->assertNotEmpty($file);
+		$file_bin = $this->bin_locator->getRootDirectoryFor(new SubmoduleId(2)) . $file_id->getId();
+
+		$this->assertFileExists($file_bin);
+
 
 	}
 
-	public function testIfRemoveFileDeletesTheFile() {
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
+	public function test_If_move_Method_Changes_Parent_Directory() {
 
-		$file_id = $file_repository->saveFile(new File(null, new SubmoduleId(3), null, 'base64', 'test-file.jpg', null));
 
-		$file_repository->removeFile($file_id, new SubmoduleId(3));
+		$directory_1 = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(1), 
+			null, 
+			'First Directory', 
+			null
+		));
 
-		$file_check = self::$db->query("SELECT * FROM file WHERE id = :id", array(
-			':id' => $file_id->getId()
+		$directory_2 = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(1), 
+			null, 
+			'Second Directory', 
+			null
+		));
+
+		$directory_3 = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(1), 
+			$directory_2, 
+			'Third Directory', 
+			null
+		));
+
+		$d3 = $this->file_repository->findDirectory($directory_3, new SubmoduleId(1));
+
+		$d3->move($directory_1);	/* directory parent moved to directory 1 */
+
+		$this->file_repository->saveDirectory($d3); /* d3 : updated directory_3 */
+
+		$updated_directory_3 = $this->file_repository->findDirectory($directory_3, new SubmoduleId(1));
+
+		$d3_db = self::$db->query("SELECT * FROM directory WHERE id = :id", array(
+			':id' => $directory_3->getId()
 		))->row;
 
-		$this->assertEmpty($file_check);
+		$this->assertEquals($d3_db['parent_id'], $directory_1->getId());
 
-		$file = $this->bin_locator->getRootDirectoryFor(new SubmoduleId(3)) . $file_id->getId();
+		$folder = $this->locator->getRootDirectoryFor(new SubmoduleId(1)) . $directory_1->getId();
 
-		$file_exists_in_bin = file_exists($file);
-
-		$this->assertNotEmpty($file);
-	
+		$this->assertFileExists($folder);
 	}
 
 
-	public function testIfSaveDirectoryUpdatedDirectoryLocation() {
+	public function test_If_move_Method_Changes_File_Directory() {
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
 
-		$parent_folder = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), null, 'first_folder', null));
+		$directory_1 = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(1), 
+			null, 
+			'Directory 1', 
+			null
+		));
 
-		$parent_folder2 = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), null, 'second_folder', null));
+		$directory_2 = $this->file_repository->saveDirectory(new Directory(
+			null, 
+			new SubmoduleId(1), 
+			null, 
+			'Directory 2', 
+			null
+		));
 
-		$folder_id = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), $parent_folder, 'child-folder', null));
+		$file = $this->file_repository->saveFile(new File(
+			null, 
+			new SubmoduleId(1), 
+			$directory_2, 
+			'base64', 
+			'File.png', 
+			null
+		));
 
-		$db_check = self::$db->query("SELECT * FROM directory WHERE id = :id", array(
-			':id' => $folder_id->getId()
+		$return_file = $this->file_repository->findFile($file, new SubmoduleId(1));
+
+		$return_file->move($directory_1);
+
+		$this->file_repository->saveFile($return_file);
+
+		$directory_1_db = self::$db->query("SELECT * FROM directory WHERE id = :id", array(
+			':id' => $directory_1->getId()
 		))->row;
 
-		$this->assertNotEmpty($db_check);
-
-		$return_folder = $file_repository->findDirectory($folder_id, new SubmoduleId(1));
-
-		$return_folder->move($parent_folder2);
-
-		$folder = $this->locator->getRootDirectoryFor(new SubmoduleId(1)) . $folder_id->getId();
-
-		$folder_exists = file_exists($folder);
-
-		$this->assertNotEmpty($folder);
-
-	}
-
-
-	public function testIfSaveFileUpdatesFileLocation () {
-
-
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
-
-		$parent_folder = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), null, 'f1', null));
-
-		$parent_folder2 = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), null, 'f2', null));
-
-		$child_file = $file_repository->saveFile(new File(null, new SubmoduleId(1), $parent_folder, 'base64', 'dosya.png', null));
-
-		$db_check = self::$db->query("SELECT * FROM file WHERE id = :id", array(
-			':id' => $child_file->getId()
+		$file_db = self::$db->query("SELECT * FROM file WHERE id = :id", array(
+			':id' => $file->getId()
 		))->row;
 
-		$this->assertNotEmpty($db_check);
+		$this->assertEquals($directory_1_db['id'], $file_db['directory_id']);
+		
 
-		$return_file = $file_repository->findFile($child_file, new SubmoduleId(1));
+		$file_path = $this->locator->getRootDirectoryFor(new SubmoduleId(1)) . $directory_1->getId();
 
-		$return_file->move($parent_folder2);
+		$this->assertFileExists($file_path);
 
-		$file = $this->locator->getRootDirectoryFor(new SubmoduleId(1)) . $child_file->getId();
+		return $directory_1;
 
-		$file_exists = file_exists($file);
+	}
 
-		$this->assertNotEmpty($file);
-	
+	 /**
+     * @depends test_If_move_Method_Changes_File_Directory
+     */
+	public function test_If_Find_Directory_Finds_The_Correct_Directory($directory_1){
+
+		$returned_directory = $this->file_repository->findDirectory($directory_1, new SubmoduleId(1));
+
+		$this->assertEquals($returned_directory->name(), 'Directory 1');
+		$this->assertEquals($returned_directory->id()->getId(), $directory_1->getId());
 	}
 
 
-	public function testIfFindDirectoryFindsTheCorrectDirectory() {
+	public function test_Find_Directory_Will_Return_Empty_If_There_Isnt_With_Given_Id(){
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
+		$id = new DirectoryId('this is non existent id');
 
-		$new_folder = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), null, 'folder_1',null));
-
-		$return_folder = $file_repository->findDirectory($new_folder, new SubmoduleId(1));
-
-		$tmz = $return_folder->id()->equals($new_folder);
-
-		$this->assertTrue($tmz);
-	}
-
-
-
-	public function testFindDirectoryWillReturnEmptyIfThereIsntWithGivenId() {
-
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
-
-		$foo = new DirectoryId('8asdasdadsaıojdajwıdjaoıjdoıawjdoajsdoıajwdo');
-
-		$return_folder = $file_repository->findDirectory($foo, new SubmoduleId(1));
+		$return_folder = $this->file_repository->findDirectory($id, new SubmoduleId(1));
 
 		$this->assertEmpty($return_folder);
 
 	}
 
-	public function testIfFindFileFindsTheCorrectFile() {
+	/**
+     * @depends test_If_saveFile_Saved_The_File_With_Parent_Id
+     */
+	public function testIfFindFileFindsTheCorrectFile($file_id) {
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
+		$return_file = $this->file_repository->findfile($file_id, new SubmoduleId(2));
 
-		$new_file = $file_repository->saveFile(new File(null, new SubmoduleId(1), null, 'base64', 'file.png', null));
-
-		$return_file = $file_repository->findfile($new_file, new SubmoduleId(1));
-
-		$tmt = $return_file->id()->equals($new_file);
-
-		$this->assertTrue($tmt);
+		$this->assertEquals($return_file->id()->getId(), $file_id->getId());
+		$this->assertEquals($return_file->name(), 'Child File');
 
 	}
 
-	public function testFindFileWillReturnEmptyIfThereIsntWithGivenId () {
+	public function test_Find_File_Will_Return_Empty_If_There_Isnt_A_File_With_Given_Id () {
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
+		$file = new FileId('Non Existent File');
 
-		$foo = new FileId('zzzzzzzzzzzzzzz');
-
-		$return_file = $file_repository->findFile($foo, new SubmoduleId(1));
+		$return_file = $this->file_repository->findFile($file, new SubmoduleId(1));
 
 		$this->assertEmpty($return_file);
 
 	}
 
+	/**
+     * @depends test_If_move_Method_Changes_File_Directory
+     */
+	public function test_Find_Directory_Cannot_Find_If_Submodule_Id_Is_Different($directory_1) {
 
-	public function testFindDirectoryCannotFindIfSubmoduleIdIsDifferent() {
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
+		$return_found = $this->file_repository->findDirectory($directory_1, new SubmoduleId(2));
+		/* directory_1 returns directory with submoduleid : 1 */
 
-		$new_directory = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), null, 'foldes',null));
+		$this->assertEmpty($return_found);
+	}
 
-		$return_found = $file_repository->findDirectory($new_directory, new SubmoduleId(2));
+	/**
+     * @depends test_If_saveFile_Saved_The_File_With_Parent_Id
+     */
+	public function test_Find_File_Cannot_Find_If_Submodule_Id_Is_Different($file_id) {
+
+		$return_found = $this->file_repository->findFile($file_id, new SubmoduleId(1));
+		/* file_id returns file with submoduleid : 2 */
 
 		$this->assertEmpty($return_found);
 
 	}
 
-	public function testFindFileCannotFindIfSubmoduleIdIsDifferent() {
+	public function test_Fetch_Directories_Cant_Return_Directory_With_Different_Submodule_Id() {
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
 
-		$new_file = $file_repository->saveFile(new File(null, new SubmoduleId(1), null, 'base64', 'file.png', null));
+		$this->file_repository->saveDirectory(new Directory(null, new SubmoduleId(7), null, 'First',null));
+		$this->file_repository->saveDirectory(new Directory(null, new SubmoduleId(8), null, 'Second',null));
 
-		$return_found = $file_repository->findFile($new_file, new SubmoduleId(2));
+		$fetch = $this->file_repository->fetchDirectories(new SubmoduleId(7), null, new QueryObject());
+		/*	only returns the 'first' directory due to submodule id  */
 
-		$this->assertEmpty($return_found);
-
-	}
-
-	public function testFetchDirectoriesCantReturnDirectoryWithDifferentSubmoduleId() {
-
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
-
-		$first_folder = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(5), null, 'folder1',null));
-		$second_folder = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(5), null, 'folder2',null));
-		$third_folder = $file_repository->saveDirectory(new Directory(null, new SubmoduleId(6), null, 'folder3',null));
-
-		$fetch_dir = $file_repository->fetchDirectories(new SubmoduleId(5), null, new QueryObject());
-
-        $this->assertEquals(2,count($fetch_dir));
-
+		$this->assertCount(1, $fetch);
+		$this->assertEquals($fetch[0]->submoduleId()->getId(), 7);
+		$this->assertEquals($fetch[0]->name(), 'First');
 
 	}
 
+	public function test_Fetch_Files_Cant_Return_File_With_Different_Submodule_Id () {
 
-	public function testFetchFilesCantReturnFileWithDifferentSubmoduleId () {
+		$this->file_repository->saveFile(new File(null, new SubmoduleId(4), null, 'base64', 'File X', null));
+		$this->file_repository->saveFile(new File(null, new SubmoduleId(4), null, 'base64', 'File Y', null));
+		$this->file_repository->saveFile(new File(null, new SubmoduleId(8), null, 'base64', 'File Z', null));
 
-		$file_repository = new FileRepository($this->locator, $this->bin_locator);
+		$fetch = $this->file_repository->fetchFiles(new SubmoduleId(4), null, new QueryObject());
+		/* there is no submodule with id:8, will return first 2 file */
 
-		$first_file = $file_repository->saveFile(new File(null, new SubmoduleId(4), null, 'base64', 'file1.png', null));
-		$second_file = $file_repository->saveFile(new File(null, new SubmoduleId(4), null, 'base64', 'file2.png', null));
-		$third_file = $file_repository->saveFile(new File(null, new SubmoduleId(8), null, 'base64', 'file3.png', null));
+		$this->assertEquals(2, count($fetch));
+		$this->assertEquals($fetch[0]->name(), 'File X');
+		$this->assertEquals($fetch[1]->name(), 'File Y');
+	}
 
-		$fetch_file = $file_repository->fetchFiles(new SubmoduleId(4), null, new QueryObject());
+	/**
+     * @depends test_If_move_Method_Changes_File_Directory
+     */
+	public function test_If_entityCount_Returns($directory_1){
 
-		$this->assertEquals(2, count($fetch_file));
+		$this->file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), $directory_1, 'XYZ',null));
+
+		$entity_count = $this->file_repository->entityCount(new SubmoduleId(1), $directory_1, new QueryObject());
+		
+		/* directory_1 is the parent of 1 directory and 1 file, this will return 2 as the number of child directory/files of directory 1. */
+
+		$this->assertEquals(2, $entity_count);
+
+	} 
+
+	/**
+     * @depends test_If_move_Method_Changes_File_Directory
+     */
+	public function test_If_directoryCount_Returns_The_Number_Of_Child_Directories_Of_Given_Directory($directory_1){
+
+
+		$this->file_repository->saveDirectory(new Directory(null, new SubmoduleId(1), $directory_1, 'Second Child',null));
+
+		$number_of_child_directories = $this->file_repository->directoryCount(  /* 2 directories */
+			new SubmoduleId(1), $directory_1, new QueryObject());
+
+		$this->assertEquals($number_of_child_directories, 2);
 	}
 
 
+	/**
+     * @depends test_If_move_Method_Changes_File_Directory
+     */
+	public function test_If_fileCount_Returns_The_Number_Of_Child_Files_Of_Given_Directory($directory_1){
+
+
+		$this->file_repository->saveFile(new File(null, new SubmoduleId(1), $directory_1, 'base64', 'Second Child', null));
+
+		$number_of_child_files = $this->file_repository->fileCount(	 /* 2 files */
+			new SubmoduleId(1), $directory_1, new QueryObject());
+
+		$this->assertEquals(2, $number_of_child_files);
+	}
 }
-
 
 ?>
