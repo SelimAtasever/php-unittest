@@ -17,9 +17,12 @@ class InitiatorIdTest extends TestCase{
 
 		$this->expectException(InvalidInitiatorIdentifierException::class);
 
+		$choices = array();
+		$triggers = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is first title', true,1), 
-			new Step(new StepId(2), 'this is second title', true,1)
+			new Step(new StepId(1),'this is first title', true, true, $choices, $triggers, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices, $triggers, 1)
 		];
 
 		$procedure = new Procedure(
@@ -34,12 +37,14 @@ class InitiatorIdTest extends TestCase{
 
 	public function test_If_Exception_Thrown_When_InitiatorId_Longer_Than_10_Numbers(){
 
-
 		$this->expectException(InvalidInitiatorIdentifierException::class);
 
+		$choices = array();
+		$triggers = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is first title', true,1), 
-			new Step(new StepId(2), 'this is second title', true,1)
+			new Step(new StepId(1),'this is first title',true, true, $choices, $triggers, 1), 
+			new Step(new StepId(2), 'this is second title', true, true, $choices, $triggers, 1)
 		];
 
 		$procedure = new Procedure(
@@ -50,7 +55,6 @@ class InitiatorIdTest extends TestCase{
 			ProcedureType::ConstructionPermit(),
 			true
 			);
-	
 	}	
 }
 
