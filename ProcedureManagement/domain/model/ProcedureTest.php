@@ -14,6 +14,10 @@ use \model\ProcedureManagement\domain\model\PersonnelId;
 use \model\ProcedureManagement\domain\model\AttachmentId;
 use \model\ProcedureManagement\domain\model\Choice;
 use \model\ProcedureManagement\domain\model\ChoiceType;
+use \model\ProcedureManagement\domain\model\Subprocedure;
+use \model\ProcedureManagement\domain\model\exception\StepNotFoundException;
+use \model\ProcedureManagement\domain\model\exception\PersonnelNotAuthorizedException;
+use \model\ProcedureManagement\domain\model\exception\ProcedureConcludedException;
 
 use PHPUnit\Framework\TestCase;
 
@@ -146,7 +150,7 @@ class ProcedureTest extends TestCase {
 		$this->assertEquals(new StepId(2), $return_attachment->stepId());
 	}
 
-	public function test_If_advance_Method_Sorts_Existing_Steps(){
+	public function test_If_advance_Method_Completes_Chosen_Step(){
 		$choices_arr = array(new Choice(
 				'comment_message',
 				new StepId(3),
@@ -189,6 +193,235 @@ class ProcedureTest extends TestCase {
 		$confirm_stepfive_incomple = $steps_of_procedure[4]->isComplete();
 		$this->assertFalse($confirm_stepfive_incomple);
 
+	}
+
+
+	public function test_If_hasActiveIncompleteSubprocedures_Returns_True_When_There_Is_An_Incomplete_Subprocedure(){
+		$choices_arr = array(new Choice(
+				'comment_message',
+				new StepId(3),
+				null,
+				ChoiceType::Transition(),
+				3
+			)
+		);
+
+		$steps_arr = [
+			new Step(new StepId(1), 'this is a title',true, true,  $choices_arr, null, 1),
+			new Step(new StepId(2), 'this is a title',true, false, $choices_arr, null, 3) 
+			// second step will make the method return true, doesnt matter first step is completed.
+		];
+
+		$subprocedure_arr = array(
+			$child = new Subprocedure(
+				new ProcedureId(2),
+				new ProcedureId(1), 	 /* parent id */
+				'subprocedure_title',
+				$steps_arr,
+				$steps_arr[1], 			/* current step */
+				true
+		));
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the parent procedure title', 
+				null, 
+				$subprocedure_arr,
+				null,
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
+
+		$confirm_incomplete_steps_exist = $procedure->hasActiveIncompleteSubprocedures();
+		$this->assertTrue($confirm_incomplete_steps_exist);
+	}
+
+
+	public function test_If_advanceSubprocedure_Completes_Chosen_Step(){
+		$choices_arr = array(new Choice(
+				'comment_message',
+				new StepId(3),
+				null,
+				ChoiceType::Transition(),
+				3
+			)
+		);
+
+		$steps_arr = [
+			new Step(new StepId(1), 'this is a title',true, true,  $choices_arr, null, 1),
+			new Step(new StepId(2), 'this is a title',true, true,  $choices_arr, null, 2),
+			new Step(new StepId(3), 'this is a title',true, false, $choices_arr, null, 3),
+			new Step(new StepId(4), 'this is a title',true, false, $choices_arr, null, 4),
+			new Step(new StepId(5), 'this is a title',true, false, $choices_arr, null, 5)
+		];
+
+		$subprocedure_arr = array(
+			$child = new Subprocedure(
+				new ProcedureId(2),
+				new ProcedureId(1), 	 /* parent id */
+				'subprocedure_title',
+				$steps_arr,
+				$steps_arr[2], 			/* current step */
+				true
+		));
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the parent procedure title', 
+				null, 
+				$subprocedure_arr,
+				null,
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
+
+		$procedure->advanceSubprocedure(new ProcedureId(2),  3, new DepartmentId(1));
+
+		$steps_of_procedure = $child->steps();	
+
+		$confirm_stepthree_completed = $steps_of_procedure[2]->isComplete(); 	
+		$this->assertTrue($confirm_stepthree_completed);
+
+		$confirm_stepfour_incomplete = $steps_of_procedure[3]->isComplete();
+		$this->assertFalse($confirm_stepfour_incomplete);
+
+
+	}
+
+
+	public function test_If_advanceSubprocedure_Throws_Exception_When_Personnel_Isnt_Authorized(){
+		$this->expectException(PersonnelNotAuthorizedException::class);
+
+		$choices_arr = array(new Choice(
+				'comment_message',
+				new StepId(3),
+				null,
+				ChoiceType::Transition(),
+				3
+			)
+		);
+
+		$steps_arr = [
+			new Step(new StepId(1), 'this is a title',true, true,  $choices_arr, null, 1),
+			new Step(new StepId(2), 'this is a title',true, true,  $choices_arr, null, 2),
+			new Step(new StepId(3), 'this is a title',true, false, $choices_arr, null, 3),
+			new Step(new StepId(4), 'this is a title',true, false, $choices_arr, null, 4),
+			new Step(new StepId(5), 'this is a title',true, false, $choices_arr, null, 5)
+		];
+
+		$subprocedure_arr = array(
+			$child = new Subprocedure(
+				new ProcedureId(2),
+				new ProcedureId(1), 	 /* parent id */
+				'subprocedure_title',
+				$steps_arr,
+				$steps_arr[2], 			/* current step */
+				true
+		));
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the parent procedure title', 
+				null, 
+				$subprocedure_arr,
+				null,
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
+
+		$procedure->advanceSubprocedure(new ProcedureId(2),  3, new DepartmentId(2));
+
+		$steps_of_procedure = $child->steps();	
+
+		$confirm_stepthree_completed = $steps_of_procedure[2]->isComplete(); 	
+		$this->assertTrue($confirm_stepthree_completed);
+
+	}
+
+	public function test_If_advance_Method_Throws_Exception_If_Step_Isnt_Found(){ 
+		$this->expectException(PersonnelNotAuthorizedException::class);
+
+			$choices_arr = array(new Choice(
+				'comment_message',
+				new StepId(3),
+				null,
+				ChoiceType::Transition(),
+				3
+			)
+		);
+
+		$steps_arr = [
+			new Step(new StepId(1), 'this is a title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(2), 'this is a title',true, true, $choices_arr, null, 2),
+			new Step(new StepId(3), 'this is a title',true, false, $choices_arr, null, 3),
+			new Step(new StepId(4), 'this is a title',true, false, $choices_arr, null, 4),
+			new Step(new StepId(5), 'this is a title',true, false, $choices_arr, null, 5)
+		];
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				null,
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
+
+		$procedure->advance(3, new DepartmentId(2));  // department ids doesnt match, this should throw an exception.
+
+		$steps_of_procedure = $procedure->steps();	
+
+		$confirm_stepthree_completed = $steps_of_procedure[2]->isComplete(); 	
+		$this->assertTrue($confirm_stepthree_completed);
+	}
+
+	public function test_If_advance_Method_Throws_Exception_If_Step_Concluded_Already(){ 
+		$this->expectException(ProcedureConcludedException::class);
+
+			$choices_arr = array(new Choice(
+				'comment_message',
+				new StepId(3),
+				null,
+				ChoiceType::Transition(),
+				1
+			)
+		);
+
+		$steps_arr = [
+			new Step(new StepId(1), 'this is a title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(2), 'this is a title',true, true, $choices_arr, null, 2),
+			new Step(new StepId(3), 'this is a title',true, false, $choices_arr, null, 3),
+			new Step(new StepId(4), 'this is a title',true, false, $choices_arr, null, 4),
+			new Step(new StepId(5), 'this is a title',true, false, $choices_arr, null, 5)
+		];
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				null,
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
+
+		$procedure->advance(1, new DepartmentId(1));  
+
+		$steps_of_procedure = $procedure->steps();	
+
+		$confirm_stepthree_completed = $steps_of_procedure[0]->isComplete(); 	
+		$this->assertTrue($confirm_stepthree_completed);
 	}
 }
 
