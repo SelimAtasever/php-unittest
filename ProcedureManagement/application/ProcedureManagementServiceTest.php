@@ -1,7 +1,8 @@
-AttachmentNotFoundException<?php
+<?php
 
 use \model\ProcedureManagement\application\ProcedureManagementService;
 use \model\ProcedureManagement\domain\model\IContainerRepository;
+use \model\ProcedureManagement\application\IDepartmentProvider;
 use \model\ProcedureManagement\domain\model\Container;
 use \model\ProcedureManagement\domain\model\ContainerId;
 use \model\ProcedureManagement\domain\model\ContainerType;
@@ -10,16 +11,20 @@ use \model\ProcedureManagement\domain\model\ICommentRepository;
 use \model\ProcedureManagement\domain\model\IAttachmentRepository;
 use \model\ProcedureManagement\application\IIdentityProvider;
 use \model\ProcedureManagement\domain\model\Comment;
+use \model\ProcedureManagement\domain\model\CommentId;
 use \model\ProcedureManagement\domain\model\Procedure;
 use \model\ProcedureManagement\domain\model\ProcedureId;
 use \model\ProcedureManagement\domain\model\InitiatorId;
 use \model\ProcedureManagement\domain\model\ProcedureType;
-use \model\ProcedureManagement\domain\model\CommentId;
 use \model\ProcedureManagement\domain\model\Step;
 use \model\ProcedureManagement\domain\model\StepId;
 use \model\ProcedureManagement\domain\model\PersonnelId;
 use \model\ProcedureManagement\domain\model\Attachment;
 use \model\ProcedureManagement\domain\model\AttachmentId;
+use \model\ProcedureManagement\domain\model\DepartmentId;
+use \model\ProcedureManagement\domain\model\Choice;
+use \model\ProcedureManagement\domain\model\ChoiceType;
+
 use \model\ProcedureManagement\application\exception\ProcedureNotFoundException;
 use \model\ProcedureManagement\application\exception\ContainerNotFoundException;
 use \model\ProcedureManagement\domain\model\exception\ProcedureCannotBeCancelledException;
@@ -41,16 +46,25 @@ class ProcedureManagementServiceTest extends TestCase{
 		$this->expectException(ContainerNotFoundException::class);
 		$container = null;
 
-		$steps_arr = array();
-		$procedures = array(
- 			new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true)
-		);
+		$choices_arr = array();
+
+		$steps_arr = [
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
+		];
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -74,7 +88,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository->method('find')->willReturn($container);
 
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
-		$procedure_repository->method('proceduresOfContainer')->willReturn($procedures);
+		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
 
 		$comment_repository = $this->createMock(ICommentRepository::class);
@@ -86,8 +100,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 		
 		$returned_procedure_id = $procedure_management_service->startProcedure(1,2);
@@ -101,16 +118,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
-		$steps_arr = array();
-		$procedures = array(
- 			new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true)
-		);
+		$choices_arr = array();
+
+		$steps_arr = [
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
+		];
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -134,7 +160,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository->method('find')->willReturn($container);
 
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
-		$procedure_repository->method('proceduresOfContainer')->willReturn($procedures);
+		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
 
 		$comment_repository = $this->createMock(ICommentRepository::class);
@@ -146,8 +172,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 		
 		$returned_procedure_id = $procedure_management_service->startProcedure(1,2);
@@ -165,10 +194,18 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array(new Choice(
+				'comment_message',
+				new StepId(3),
+				null,
+				ChoiceType::Transition(),
+				3
+			) );
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 
 		];
 		
 		$procedure = null;
@@ -207,11 +244,14 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 		
-		$procedure_management_service->advanceProcedure(2,1);
+		$procedure_management_service->advanceProcedure(2,1,1);
 	}
 
 	public function test_If_cancelProcedure_Removes_Pointed_Procedure(){
@@ -221,19 +261,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -269,8 +315,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->cancelProcedure(1);
@@ -288,20 +337,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', true,3)
-		]; 
-		//all steps are completed, this procedure is completed,cannot be cancelled.
-		
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,true, $choices_arr, null, 1) 			
+		];
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				null,						// currentstep is null,cannot be cancelled now.
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -337,8 +391,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->cancelProcedure(1);
@@ -347,23 +404,35 @@ class ProcedureManagementServiceTest extends TestCase{
 	public function test_If_comment_Function_Creates_A_New_Comment_And_Return_Its_Id(){
 
 		$container = new Container(
-			new ContainerId(2), 
+			new ContainerId(1), 
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array(new Choice(
+				'comment_message',
+				new StepId(3),
+				null,
+				ChoiceType::Transition(),
+				1
+			) );
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -409,13 +478,18 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$returned_comment_id = $procedure_management_service->comment(1,1,1);
+
 		$this->assertEquals($returned_comment_id, 1);
-	}	
+	}
+	
 
 	public function test_If_comment_Function_Throws_Exception_When_Step_Isnt_Found(){
 
@@ -426,19 +500,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -484,8 +564,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$returned_comment_id = $procedure_management_service->comment(1,1,1);
@@ -501,19 +584,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -550,8 +639,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->editComment(1,1, 'this is the comment');
@@ -567,19 +659,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = null; // this will trigger the exception.
 
@@ -609,8 +707,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->editComment(1,1, 'this is the comment');
@@ -626,19 +727,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -675,8 +782,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->editComment(1,1, 'this is the comment');
@@ -692,19 +802,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -741,8 +857,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->removeComment(1);
@@ -756,19 +875,31 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array(new Choice(
+				'comment_message',
+				new StepId(3),
+				null,
+				ChoiceType::Transition(),
+				1
+			) );
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -815,8 +946,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);	
 
 		$returned_attachment_id = $procedure_management_service->addAttachment(1,1,'base64', 'attachment_name');
@@ -834,19 +968,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -883,8 +1023,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 	
 		$procedure_management_service->addAttachment(1,1,'base64', 'attachment-name');
@@ -899,19 +1042,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -948,8 +1097,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->removeAttachment(1);
@@ -964,19 +1116,25 @@ class ProcedureManagementServiceTest extends TestCase{
 			ContainerType::Structure()
 		);
 
+		$choices_arr = array();
+
 		$steps_arr = [
-			new Step(new StepId(1),'this is the first title', true,1), 
-			new Step(new StepId(2), 'this is the second title', true,2),
-			new Step(new StepId(3), 'this is the third title', false,3)
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
 		];
-		
+
 		$procedure = new Procedure(
-			new ProcedureId(1), 
-			new InitiatorId(1234567890), 
-			'this is the procedure title', 
-			$steps_arr, 
-			ProcedureType::ConstructionPermit(),
-			true);
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			);
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -1006,8 +1164,11 @@ class ProcedureManagementServiceTest extends TestCase{
 		$identity_provider = $this->createMock(IIdentityProvider::class);
 		$identity_provider->method('identity')->willReturn(1);
 
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->removeAttachment(1);
