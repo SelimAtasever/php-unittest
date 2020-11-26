@@ -63,7 +63,6 @@ class CommentTest extends TestCase{
 		$comment->editMessage('doom', new PersonnelId(2) );
 		$exceptions = $comment->exceptions();
 
-
 		foreach ($exceptions as $exception) {
 			if(get_class($exception) == CommentInsufficientPrivilegeException::class)
 				throw new CommentInsufficientPrivilegeException();
