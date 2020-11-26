@@ -17,14 +17,6 @@ class ApplicationFileLocatorTest extends TestCase{
 		$this->assertEquals(DIR_REPOSITORY .'repo/test/new_file.txtprocedure/application/1/1', $path);
 
 	}
-
-	public function test_If_locate_Method_Indeed_Creates_A_File(){
-
-		$root = DIR_REPOSITORY . '/repo/procedure/application/new_file.txtprocedure/application/1';
-
-		$confirm_file_exists = file_exists($root);
-		$this->assertTrue($confirm_file_exists);
-	}
 }
 
 
