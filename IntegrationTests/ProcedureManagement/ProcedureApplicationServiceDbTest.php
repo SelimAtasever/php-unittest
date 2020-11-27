@@ -34,7 +34,7 @@ class ProcedureApplicationServiceDbTest extends TestCase{
 
 	}	
 
-	public function test_If_apply_Function_Returns_Procedure_Id(){ 
+	public function test_If_apply_Function_Returns_Procedure_Id(){
 
 		$application_file_locator = new ApplicationFileLocator('./role_root_dir/');	
 		$application_file_bin_locator = new ApplicationFileLocator('./role_root_bin_dir/');
@@ -54,14 +54,22 @@ class ProcedureApplicationServiceDbTest extends TestCase{
 			'type' => 1
 		));
 
+		$initiator_data = array(
+			'type' => 1,
+			'tcno' => 11223344550,
+			'taxnumber' => 002,
+			'address' => 'address',
+			'phone' => 12491041,
+			'firstname' => 'sonny',
+			'lastname' => 'liston',
+			'tax_office' => 'warsaw',
+			'corporate_name' => 'kant',
+		);
+
 		$returned_id = $procedure_application_service->apply(
-			1,
-			2,
-			1,
-			1122334455,
-			null,
-			null,
-			null,
+			1,  							/* container_id */
+			2,								/* type */
+			$initiator_data,				/* initiator_data (array) */
 			new FormData('data', null)
 		);
 
@@ -75,7 +83,7 @@ class ProcedureApplicationServiceDbTest extends TestCase{
 			':id' => $returned_id
 		))->row['title'];
 
-		$this->assertEQuals($db_title, 'Yıkım Ruhsatı Süreci');
+		$this->assertEquals($db_title, 'Yapı Ruhsatı');
 	}
 }
 
