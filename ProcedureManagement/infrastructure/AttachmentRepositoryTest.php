@@ -13,7 +13,7 @@ class AttachmentRepositoryTest extends TestCase{
 
 	private static \DB $db;
 	private IFileLocator $file_locator;
-	private IFileLocator $bin_locator;
+	private IFileLocator $file_bin_locator;
 
     public static function setUpBeforeClass() : void {
     	
@@ -36,10 +36,10 @@ class AttachmentRepositoryTest extends TestCase{
 	protected function setUp() : void {
 
         $this->file_locator = $this->createMock(IFileLocator::class);
-        $this->file_locator->method('getFilePath')->willReturn(DIR_REPOSITORY . 'repo/test/dosya.txt');
+        $this->file_locator->method('getFilePath')->willReturn( '/Users/selimatasever/Desktop/GitHub/erp-api/v1/tests/repository/repo/test/dosya.txt' );
 
         $this->file_bin_locator = $this->createMock(IFileLocator::class);
-        $this->file_bin_locator->method('getFilePath')->willReturn(DIR_REPOSITORY . 'repo/test_bin/dosya.txt');
+        $this->file_bin_locator->method('getFilePath')->willReturn( '/Users/selimatasever/Desktop/GitHub/erp-api/v1/tests/repository/repo/test_bin/dosya.txt' );
 
 	}
 
@@ -52,7 +52,7 @@ class AttachmentRepositoryTest extends TestCase{
 			new AttachmentId(1),
 			new StepId(1),
 			new PersonnelId(1),
-			'attachment name',
+			'zod name',
 			'prefix,base64',
 			new DateTime()
 		));
@@ -68,7 +68,8 @@ class AttachmentRepositoryTest extends TestCase{
 		$attachment_repository = new AttachmentRepository(self::$db, $this->file_locator, $this->file_bin_locator);
 
 		$attachment_from_db = $attachment_repository->find(new AttachmentId(1));
-		$this->assertNotEmpty($attachment_repository);
+
+		$this->assertNotEmpty($attachment_from_db);
 	}
 
 	public function test_If_remove_Method_Carries_New_Attachment_To_Step_Attachment_Bin(){
@@ -80,7 +81,7 @@ class AttachmentRepositoryTest extends TestCase{
 			new AttachmentId(2),
 			new StepId(1),
 			new PersonnelId(1),
-			'attachment name',
+			'to be deleted',
 			'prefix,base64',
 			new DateTime()
 		));
@@ -88,7 +89,12 @@ class AttachmentRepositoryTest extends TestCase{
 		$attachment_repository->remove(new AttachmentId(2));
 
 		$step_attachment_bin = self::$db->query('SELECT * FROM step_attachment_bin WHERE id = 2');
-		$this->assertNotEmpty($step_attachment_bin);
+
+		$step_attachment_bin_obj_to_arr = json_decode(json_encode($step_attachment_bin), true);
+
+		$this->assertEquals($step_attachment_bin_obj_to_arr['row']['id'], 2);
+		$this->assertEquals($step_attachment_bin_obj_to_arr['row']['step_id'], 1);
+		$this->assertEquals($step_attachment_bin_obj_to_arr['row']['name'], 'to be deleted');
 
 	}
 
@@ -111,6 +117,7 @@ class AttachmentRepositoryTest extends TestCase{
 		$step_attachment_bin = self::$db->query("SELECT * FROM step_attachment_bin WHERE id=3");
 		$this->assertNotEmpty($step_attachment_bin);
 	}
+
 
 	public function test_If_nextId_Returns_A_New_Unique_Id(){
 
