@@ -9,6 +9,9 @@ use \model\ProcedureManagement\domain\model\ProcedureType;
 use \model\ProcedureManagement\domain\model\ContainerId;
 use \model\ProcedureManagement\domain\model\ICommentRepository;
 use \model\ProcedureManagement\domain\model\IAttachmentRepository;
+use \model\ProcedureManagement\domain\model\Step;
+use \model\ProcedureManagement\domain\model\StepId;
+use \model\ProcedureManagement\domain\model\DepartmentId;
 
 use PHPUnit\Framework\TestCase;
 
@@ -32,20 +35,34 @@ class ProcedureRepositoryTest extends TestCase{
        self::$db->command("DELETE FROM `procedure`");
 
 	}
-
 	
 	public function test_If_save_Method_Adds_A_New_Procedure_To_Db(){
 
+        self::$db->command("DELETE FROM step");
+
 		$procedure_repository = new ProcedureRepository(self::$db);
 
-		$steps_arr = array();
-		$procedure_repository->save(new Procedure(
-			new ProcedureId(1),
-			new InitiatorId(1234567890),
-			'this is procedure title',
-			$steps_arr,
-			ProcedureType::ConstructionPermit(),
-			true)
+		$choices_arr = array();
+
+			$steps_arr = [
+				new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+				new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+				new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
+			];
+
+		$procedure_repository->save(
+
+			$procedure = new Procedure(
+					new ProcedureId(1), 
+					new ContainerId(1), 
+					null, 
+					'this is the procedure title', 
+					$steps_arr, 
+					null,
+					$steps_arr[2],
+					ProcedureType::Numbering(),
+					new DepartmentId(1)
+				)
 		,new ContainerId(1));
 
 		$confirm_saved_on_db = self::$db->query("SELECT * FROM `procedure` WHERE id = 1")->rows;
@@ -66,15 +83,28 @@ class ProcedureRepositoryTest extends TestCase{
 	public function test_If_proceduresOfContainer_Returns_An_Array_Of_Procedures_With_Given_Id(){
 
 		$procedure_repository = new ProcedureRepository(self::$db);
+		
+		$choices_arr = array();
 
-		$steps_arr = array();
-		$procedure_repository->save(new Procedure(
-			new ProcedureId(2),
-			new InitiatorId(9234567890),
-			'this is new procedure title',
-			$steps_arr,
-			ProcedureType::ConstructionPermit(),
-			true)
+		$steps_arr = [
+			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
+		];
+
+		$procedure_repository->save(  
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				null, 
+				'this is the procedure title', 
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+			)
 		,new ContainerId(1));
 	
 		$arr_of_procedures = $procedure_repository->proceduresOfContainer(new ContainerId(1));
@@ -87,31 +117,40 @@ class ProcedureRepositoryTest extends TestCase{
 	public function test_If_remove_Method_Carries_Procedure_To_Procedure_Bin(){
 
 		$comment_repository = $this->createMock(ICommentRepository::class);
+        $comment_repository->expects($this->any())
+                 			->method('removeByStepId')
+                 			->willReturn(true);
 
-        $comment_repository->expects($this->once())
-
-                 ->method('removeByStepId')
-                 ->willReturn(true);
 
 		$attachment_repository = $this->createMock(IAttachmentRepository::class);
-
-        $attachment_repository->expects($this->once())
-                 ->method('removeByStepId')
-                 ->willReturn(true);
-
+        $attachment_repository->expects($this->any())
+                 		      ->method('removeByStepId')
+                 			  ->willReturn(true);
 
 		$procedure_repository = new ProcedureRepository(self::$db);
 
+		$choices_arr = array();
 
-		$steps_arr = array(new Step(new StepId(1), 'title', true, 1));
-		$procedure_repository->save(new Procedure(
-			new ProcedureId(1),
-			new InitiatorId(9234567890),
-			'this is new procedure title',
-			$steps_arr,
-			ProcedureType::ConstructionPermit(),
-			true)
-		,new ContainerId(1));
+			$steps_arr = [
+				new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
+				new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
+				new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
+			];
+
+		$procedure_repository->save(
+
+			$procedure = new Procedure(
+					new ProcedureId(1), 
+					new ContainerId(1), 
+					null, 
+					'this is the procedure title', 
+					$steps_arr, 
+					null,
+					$steps_arr[0],
+					ProcedureType::Numbering(),
+					new DepartmentId(1)
+				)
+		,new ContainerId(1) );
 
 
 		$procedure_repository->remove(new ProcedureId(1), $comment_repository, $attachment_repository);
