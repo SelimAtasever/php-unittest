@@ -265,11 +265,27 @@ class ProcedureManagementServiceDbTest extends TestCase{
 			'id' => 4,
 			'container_id' => 1,
 			'initiator_id' => null,
-			'title' => 'procedure title_3',
+			'title' => 'finalll',
 			'type' => 2,
 			'date_created' => (new DateTime())->format('Y-m-d H:i:s'),
 			'department' => 1,
-			'current_step' => null
+			'current_step' => 3
+		));
+
+		self::$db->insert('step' , array( 
+			'id' => 5,
+			'procedure_id' => 4,
+			'title' => 'exception_preventer',
+			'is_complete' => 0
+		));
+
+		self::$db->insert('step_choice', array(
+			'step_id' => 5,
+			'message' => 'auf',
+			'next_step_id' => null,
+			'subprocedure_id' => null,
+			'type' => 1,
+			'number' => 5
 		));
 
 		self::$db->insert('step', array(
@@ -293,7 +309,7 @@ class ProcedureManagementServiceDbTest extends TestCase{
 			'next_step_id' => null,
 			'subprocedure_id' => 7,
 			'type' => 1,
-			'number' => 4
+			'number' => 4 
 		));
 
 		$this->procedure_management_service->advanceSubprocedure(1,4,7,4); /*containerid, procedureid, subprocedureid, choice */
@@ -302,7 +318,6 @@ class ProcedureManagementServiceDbTest extends TestCase{
 		$convert = json_decode(json_encode($result), true);
 
 		$this->assertEquals( $convert['row']['is_complete'] , 1 ); 
-
 	}
 
 	// private function throwFromExceptionCollection($exception_collection, $exception) {
