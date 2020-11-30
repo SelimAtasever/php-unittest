@@ -6,6 +6,7 @@ use \model\ProcedureManagement\infrastructure\ContainerRepository;
 use \model\ProcedureManagement\infrastructure\ProcedureRepository;
 use \model\ProcedureManagement\infrastructure\CommentRepository;
 use \model\ProcedureManagement\infrastructure\AttachmentRepository;
+use \model\ProcedureManagement\application\IDepartmentProvider;
 
 use \model\ProcedureManagement\infrastructure\FileLocator;
 use \model\ProcedureManagement\infrastructure\IdentityProvider;
@@ -17,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 class ProcedureManagementServiceDbTest extends TestCase{
 
 	private static \DB $db;
+	private $procedure_management_service;
  	public static function setUpBeforeClass() : void {
     	
     	global $framework;
@@ -32,18 +34,23 @@ class ProcedureManagementServiceDbTest extends TestCase{
         );
 
        self::$db->command("DELETE FROM `procedure`");
+       self::$db->command("DELETE FROM `subprocedure`");
        self::$db->command("DELETE FROM container");
        self::$db->command("DELETE FROM step");
        self::$db->command("DELETE FROM step_comment");
+       self::$db->command("DELETE FROM step_choice");
        self::$db->command("DELETE FROM step_attachment");
 	}	
 
-	public function test_If_startProcedure_Creates_A_New_Procedure_On_Db_And_Returns_Its_Id(){
+	protected function setUp() : void {
 
 		$identity_provider = new IdentityProvider(1);
 
 		$file_locator = new FileLocator('./role_root_dir/');
 		$file_bin_locator = new FileLocator('./role_root_bin_dir/');
+
+		$department_provider_service = $this->createMock(IDepartmentProvider::class);
+		$department_provider_service->method('department')->willReturn(1);
 
 		$attachment_repository = new AttachmentRepository(
 			self::$db, $file_locator , $file_bin_locator , null
@@ -53,16 +60,19 @@ class ProcedureManagementServiceDbTest extends TestCase{
 		$procedure_repository = new ProcedureRepository(self::$db, null);
 		$comment_repository = new CommentRepository(self::$db, null);
 
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
+		$this->procedure_management_service = new ProcedureManagementService(
+			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider_service
 		);
+	}
+
+	public function test_If_startProcedure_Creates_A_New_Procedure_On_Db_And_Returns_Its_Id(){
 
 		self::$db->insert('container', array(
 			'id' => 1,
 			'type' => 1
 		));
 
-		$returned_id = $procedure_management_service->startProcedure(1,2);	
+		$returned_id = $this->procedure_management_service->startProcedure(1,2);	
 
 		$id_from_db = self::$db->query("SELECT * FROM `procedure` WHERE id = :id", array(
 			':id' => $returned_id
@@ -73,64 +83,46 @@ class ProcedureManagementServiceDbTest extends TestCase{
 
 	public function test_If_advanceProcedure_Completes_The_Procedure_Step(){
 
-		$identity_provider = new IdentityProvider(1);
-
-		$file_locator = new FileLocator('./role_root_dir/');
-		$file_bin_locator = new FileLocator('./role_root_bin_dir/');
-
-		$attachment_repository = new AttachmentRepository(
-			self::$db, $file_locator , $file_bin_locator , null
-		);
-
-		$container_repository = new ContainerRepository(self::$db);
-		$procedure_repository = new ProcedureRepository(self::$db, null);
-		$comment_repository = new CommentRepository(self::$db, null);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
-		);
-
 		self::$db->insert('procedure', array(
 			'id' => 1,
 			'container_id' => 1,
 			'initiator_id' => null,
-			'title' => 'procedure title example',
+			'title' => 'SD',
 			'type' => 2,
-			'is_repeatable' => 0,
-			'date_created' => (new DateTime())->format('Y-m-d H:i:s')
-		));
+			'date_created' => (new DateTime())->format('Y-m-d H:i:s'),
+			'department' => 1,
+			'current_step' => '1'
+		) );
 
 		self::$db->insert('step', array(
 			'id' => 1,
 			'procedure_id' => 1,
-			'title' => 'step title example',
+			'title' => 'step_1',
 			'is_complete' => 0,	 	// isComplete will be 1 after calling the function
+			'order' => 4,
+			'out_of_scope' => 0,
+			'activated_on' => null,
 		));
 
-		$procedure_management_service->advanceProcedure(1,1);
+		self::$db->insert('step_choice', array(
+			'step_id' => 1,
+			'message' => 'MSG',
+			'next_step_id' => null,
+			'subprocedure_id' => null,
+			'type' => 1,
+			'number' => 1
+		) );
 
-		$confirm_iscomplete = self::$db->query("SELECT * FROM step WHERE id=1")->row['is_complete'];
+		$this->procedure_management_service->advanceProcedure(1,1,1);
+
+
+		$confirm_iscomplete = self::$db->query("SELECT * FROM step WHERE id = 1")->row['is_complete'];
+
 		$this->assertEquals($confirm_iscomplete, 1);
+
 	}
 
 	public function test_If_cancelProcedure_Removes_Procedure_With_Given_Id() {
-
-		$identity_provider = new IdentityProvider(1);
-
-		$file_locator = new FileLocator('./role_root_dir/');
-		$file_bin_locator = new FileLocator('./role_root_bin_dir/');
-
-		$attachment_repository = new AttachmentRepository(
-			self::$db, $file_locator , $file_bin_locator , null
-		);
-
-		$container_repository = new ContainerRepository(self::$db);
-		$procedure_repository = new ProcedureRepository(self::$db, null);
-		$comment_repository = new CommentRepository(self::$db, null);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
-		);
 
 		self::$db->insert('procedure', array(
 			'id' => 2,
@@ -138,41 +130,26 @@ class ProcedureManagementServiceDbTest extends TestCase{
 			'initiator_id' => null,
 			'title' => 'procedure to be deleted',
 			'type' => 2,
-			'is_repeatable' => 0,
-			'date_created' => (new DateTime())->format('Y-m-d H:i:s')
+			'date_created' => (new DateTime())->format('Y-m-d H:i:s'),
+			'department' => 1,
+			'current_step' => 2
 		));
 
 		self::$db->insert('step', array(
 			'id' => 2,
 			'procedure_id' => 2,
 			'title' => 'title example',
-			'is_complete' => 0,	 	
+			'is_complete' => 0	
 		));
 
-		$procedure_management_service->cancelProcedure(2);
+		$this->procedure_management_service->cancelProcedure(2);
 		$this->assertEmpty(self::$db->query("SELECT * FROM `procedure` WHERE id=2")->row);
 	}	
 
 	public function test_If_comment_Method_Creates_A_New_Comment_On_Db_And_Return_Its_Id(){
 
-		$identity_provider = new IdentityProvider(1);
+		$returned_comment_id = $this->procedure_management_service->comment(1,1, 'comment');	/*procedure id, step id*/
 
-		$file_locator = new FileLocator('./role_root_dir/');
-		$file_bin_locator = new FileLocator('./role_root_bin_dir/');
-
-		$attachment_repository = new AttachmentRepository(
-			self::$db, $file_locator , $file_bin_locator , null
-		);
-
-		$container_repository = new ContainerRepository(self::$db);
-		$procedure_repository = new ProcedureRepository(self::$db, null);
-		$comment_repository = new CommentRepository(self::$db, null);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
-		);
-
-		$returned_comment_id = $procedure_management_service->comment(1,1, 'this is the testing comment'); /*procedure id, step id*/
 		$db_comment_id = self::$db->query("SELECT * FROM step_comment WHERE id = :id", array(
 			':id' => $returned_comment_id
 		))->row['id']; 
@@ -182,25 +159,8 @@ class ProcedureManagementServiceDbTest extends TestCase{
 
 	public function test_If_editComment_Updates_Comment_With_Given_Id(){
 
-		$identity_provider = new IdentityProvider(1);
-
-		$file_locator = new FileLocator('./role_root_dir/');
-		$file_bin_locator = new FileLocator('./role_root_bin_dir/');
-
-		$attachment_repository = new AttachmentRepository(
-			self::$db, $file_locator , $file_bin_locator , null
-		);
-
-		$container_repository = new ContainerRepository(self::$db);
-		$procedure_repository = new ProcedureRepository(self::$db, null);
-		$comment_repository = new CommentRepository(self::$db, null);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
-		);
-
-		$comment_id = $procedure_management_service->comment(1,1, 'comment to be updated......');
-		$procedure_management_service->editComment(1, $comment_id, 'this comment has been updated');
+		$comment_id = $this->procedure_management_service->comment(1,1, 'comment to be updated......');
+		$this->procedure_management_service->editComment(1, $comment_id, 'this comment has been updated');
 
 		$confirm_comment_updated = self::$db->query("SELECT * FROM step_comment WHERE id = :id", array(
 			':id' => $comment_id
@@ -211,25 +171,8 @@ class ProcedureManagementServiceDbTest extends TestCase{
 
 	public function test_If_removeComment_Removes_Comment_With_Given_Id(){
 
-		$identity_provider = new IdentityProvider(1);
-
-		$file_locator = new FileLocator('./role_root_dir/');
-		$file_bin_locator = new FileLocator('./role_root_bin_dir/');
-
-		$attachment_repository = new AttachmentRepository(
-			self::$db, $file_locator , $file_bin_locator , null
-		);
-
-		$container_repository = new ContainerRepository(self::$db);
-		$procedure_repository = new ProcedureRepository(self::$db, null);
-		$comment_repository = new CommentRepository(self::$db, null);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
-		);
-
-		$comment_id = $procedure_management_service->comment(1,1, 'comment to be updated......');
-		$procedure_management_service->removeComment($comment_id);
+		$comment_id = $this->procedure_management_service->comment(1,1, 'comment to be deleted......');
+		$this->procedure_management_service->removeComment($comment_id);
 
 		$this->assertEmpty(self::$db->query("SELECT * FROM step_comment WHERE id = :id", array(
 			':id' => $comment_id
@@ -238,41 +181,38 @@ class ProcedureManagementServiceDbTest extends TestCase{
 
 	public function test_If_addAttachment_Adds_A_New_Attachment_And_Returns_Its_Id(){
 
-		$identity_provider = new IdentityProvider(1);
-
-		$file_locator = new FileLocator('./role_root_dir/');
-		$file_bin_locator = new FileLocator('./role_root_bin_dir/');
-
-		$attachment_repository = new AttachmentRepository(
-			self::$db, $file_locator , $file_bin_locator , null
-		);
-
-		$container_repository = new ContainerRepository(self::$db);
-		$procedure_repository = new ProcedureRepository(self::$db, null);
-		$comment_repository = new CommentRepository(self::$db, null);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
-		);
-		
 		self::$db->insert('procedure', array(
 			'id' => 2,
 			'container_id' => 1,
 			'initiator_id' => null,
 			'title' => 'procedure title_2',
 			'type' => 2,
-			'is_repeatable' => 0,
-			'date_created' => (new DateTime())->format('Y-m-d H:i:s')
+			'date_created' => (new DateTime())->format('Y-m-d H:i:s'),
+			'department' => 1,
+			'current_step' => 2
 		));
 
 		self::$db->insert('step', array(
 			'id' => 2,
 			'procedure_id' => 2,
 			'title' => 'title example',
-			'is_complete' => 0,	 	
+			'is_complete' => 0,
+			'order' => 5,
+			'out_of_scope' => 0,
+			'activated_on' => null,
+
 		));
 
-		$returned_attachment_id = $procedure_management_service->addAttachment(2,2,'base64','attachment name.....');
+		self::$db->insert('step_choice', array(
+			'step_id' => 2,
+			'message' => 'exception_preventer',
+			'next_step_id' => null,
+			'subprocedure_id' => null,
+			'type' => 1,
+			'number' => 1
+		));
+
+		$returned_attachment_id = $this->procedure_management_service->addAttachment(2,2,'base64','attachment name.....');
 
 		$db_attachment_id = self::$db->query("SELECT * FROM step_attachment WHERE id = :id", array(
 			':id' => $returned_attachment_id
@@ -283,23 +223,6 @@ class ProcedureManagementServiceDbTest extends TestCase{
 	}
 
 	public function test_If_removeAttachment_Removes_Attachment_With_Given_Id(){
-
-		$identity_provider = new IdentityProvider(1);
-
-		$file_locator = new FileLocator('./role_root_dir/');
-		$file_bin_locator = new FileLocator('./role_root_bin_dir/');
-
-		$attachment_repository = new AttachmentRepository(
-			self::$db, $file_locator , $file_bin_locator , null
-		);
-
-		$container_repository = new ContainerRepository(self::$db);
-		$procedure_repository = new ProcedureRepository(self::$db, null);
-		$comment_repository = new CommentRepository(self::$db, null);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider
-		);
 		
 		self::$db->insert('procedure', array(
 			'id' => 3,
@@ -307,24 +230,89 @@ class ProcedureManagementServiceDbTest extends TestCase{
 			'initiator_id' => null,
 			'title' => 'procedure title_3',
 			'type' => 2,
-			'is_repeatable' => 0,
-			'date_created' => (new DateTime())->format('Y-m-d H:i:s')
+			'date_created' => (new DateTime())->format('Y-m-d H:i:s'),
+			'department' => 1,
+			'current_step' => 3
 		));
 
 		self::$db->insert('step', array(
 			'id' => 3,
 			'procedure_id' => 3,
-			'title' => 'title example2',
+			'title' => 'removed procedures step title',
 			'is_complete' => 0,	 	
 		));
 
-		$attachment_id = $procedure_management_service->addAttachment(3, 3, 'base64,', 'picture.png');
-		$procedure_management_service->removeAttachment($attachment_id);
+		self::$db->insert('step_choice', array(
+			'step_id' => 3,
+			'message' => 'final',
+			'next_step_id' => null,
+			'subprocedure_id' => null,
+			'type' => 1,
+			'number' => 1
+		));
+
+		$attachment_id = $this->procedure_management_service->addAttachment(3, 3, 'base64,', 'picture.png');
+		$this->procedure_management_service->removeAttachment($attachment_id);
 
 		$this->assertEmpty(self::$db->query("SELECT * FROM step_attachment WHERE id = :id", array(
 			':id' => $attachment_id
 		))->row); 
 	}
+
+	public function test_If_advanceSubprocedure_Completes_The_Subprocedure_Step(){
+
+		self::$db->insert('procedure', array(
+			'id' => 4,
+			'container_id' => 1,
+			'initiator_id' => null,
+			'title' => 'procedure title_3',
+			'type' => 2,
+			'date_created' => (new DateTime())->format('Y-m-d H:i:s'),
+			'department' => 1,
+			'current_step' => null
+		));
+
+		self::$db->insert('step', array(
+			'id' => 4,
+			'procedure_id' => 7,
+			'title' => 'final',
+			'is_complete' => 0	 	
+		));
+
+		self::$db->insert('subprocedure', array(
+			'id' => 7,
+			'parent_id' => 4,
+			'title' => 'subprocedure_title',
+			'current_step' => 4,
+			'is_active' => 1
+		));
+
+		self::$db->insert('step_choice', array(
+			'step_id' => 4,
+			'message' => 'final',
+			'next_step_id' => null,
+			'subprocedure_id' => 7,
+			'type' => 1,
+			'number' => 4
+		));
+
+		$this->procedure_management_service->advanceSubprocedure(1,4,7,4); /*containerid, procedureid, subprocedureid, choice */
+
+		$result = self::$db->query("SELECT is_complete FROM step WHERE id = 4");
+		$convert = json_decode(json_encode($result), true);
+
+		$this->assertEquals( $convert['row']['is_complete'] , 1 ); 
+
+	}
+
+	// private function throwFromExceptionCollection($exception_collection, $exception) {
+	// 	foreach($exception_collection->getExceptions() as $e) {
+	// 		if(get_class($e) == $exception) {
+	// 			throw new $exception;
+	// 		}
+	// 	}
+	// }
+
 }
 
 ?>
