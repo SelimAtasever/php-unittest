@@ -24,6 +24,7 @@ use \model\ProcedureManagement\domain\model\AttachmentId;
 use \model\ProcedureManagement\domain\model\DepartmentId;
 use \model\ProcedureManagement\domain\model\Choice;
 use \model\ProcedureManagement\domain\model\ChoiceType;
+use \model\ProcedureManagement\application\IContainerValidator;
 
 use \model\ProcedureManagement\application\exception\ProcedureNotFoundException;
 use \model\ProcedureManagement\application\exception\ContainerNotFoundException;
@@ -40,52 +41,112 @@ use PHPUnit\Framework\TestCase;
 
 class ProcedureManagementServiceTest extends TestCase{
 
+	private $procedure;
+	private $choices_arr;
+	private $steps_arr;
+	private $container;
+	private $comment;
+	private $attachment;
+	private $procedure_management_service;
+
+	protected function setUp() : void{
+
+		$this->choices_arr = array(
+			new Choice(
+				'step_choice', null, null, ChoiceType::Success(), 1
+			)
+		);
+
+		$this->container = new Container(
+			new ContainerId(2), 
+			ContainerType::Structure()
+		);
+
+		$this->steps_arr = [
+			new Step(new StepId(1),'this is first title',true, true, $this->choices_arr, null, 1), 
+			new Step(new StepId(2), 'this is second title',true, true, $this->choices_arr, null, 1),
+			new Step(new StepId(3), 'this is third title',true,false, $this->choices_arr, null, 1) 			
+		];
+
+		$this->procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1), 
+				ContainerType::Structure(), 
+				null,
+				'this is the procedure title', 
+				$this->steps_arr, 
+				null,
+				$this->steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+		);
+
+		$this->comment = new Comment(
+			new CommentId(1),
+			new StepId(1), 
+			new PersonnelId(1), 
+			'this is the comment', 
+			new DateTime(), 
+			new DateTime()
+		);
+
+		$this->attachment = new Attachment(
+			new AttachmentId(1),
+			new StepId(1),
+			new PersonnelId(1),
+			'Attachment name...',
+			'base64',
+			new DateTime()
+		);
+
+		$container_repository = $this->createMock(IContainerRepository::class);
+		$container_repository->method('find')->willReturn($this->container);
+
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
+		$procedure_repository = $this->createMock(IProcedureRepository::class);
+		$procedure_repository->method('find')->willReturn($this->procedure);
+		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
+
+		$comment_repository = $this->createMock(ICommentRepository::class);
+		$comment_repository->method('find')->willReturn($this->comment);
+		$comment_repository->method('stepExists')->willReturn(true);
+		$comment_repository->method('nextId')->willReturn( new CommentId(1) );
+
+		$attachment_repository = $this->createMock(IAttachmentRepository::class);
+		$attachment_repository->method('find')->willReturn($this->attachment);
+		$attachment_repository->method('nextId')->willReturn(new AttachmentId(1));
+
+		$identity_provider = $this->createMock(IIdentityProvider::class);
+		$identity_provider->method('identity')->willReturn(1);
+
+		$department_provider = $this->createMock(IDepartmentProvider::class);
+		$department_provider->method('department')->willReturn(1);
+
+		$this->procedure_management_service = new ProcedureManagementService(
+			$container_repository, $container_validator, $procedure_repository , $comment_repository, $attachment_repository, $identity_provider, $department_provider
+		);
+
+	}
+
 
 	public function test_If_startProcedure_Method_Create_A_Procedure_And_Return_Its_Id(){
 
 		$this->expectException(ContainerNotFoundException::class);
 		$container = null;
 
-		$choices_arr = array();
-
-		$steps_arr = [
-			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
-			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
-			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
-		];
-
-		$procedure = new Procedure(
-				new ProcedureId(1), 
-				new ContainerId(1), 
-				null, 
-				'this is the procedure title', 
-				$steps_arr, 
-				null,
-				$steps_arr[0],
-				ProcedureType::Numbering(),
-				new DepartmentId(1)
-			);
-
-		$comment = new Comment(
-			new CommentId(1),
-			new StepId(1), 
-			new PersonnelId(1), 
-			'this is the comment', 
-			new DateTime(), 
-			new DateTime()
-		);
-
-		$attachment = new Attachment(
-			new AttachmentId(1),
-			new StepId(1),
-			new PersonnelId(1),
-			'Attachment name...',
-			'base64',
-			new DateTime()
-		);
+		$choices_arr = $this->choices_arr;
+		$steps_arr = $this->steps_arr;
+		$procedure = $this->procedure;
+		$comment = $this->comment;
+		$attachment = $this->attachment;
 
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
+
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(false); 	//this will trigger the exception
 
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
@@ -104,82 +165,23 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator, $procedure_repository , $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 		
-		$returned_procedure_id = $procedure_management_service->startProcedure(1,2);
+		$returned_procedure_id = $procedure_management_service->startProcedure(1,1,2); /* containerid,containertype,procedure_type */
 	}
 
 
-	public function test_If_Test_Throws_Exception_When_Container_Isnt_Found(){
+	public function test_If_startProcedure_Method_Returns_Started_Procedure_Id_Correctly(){
 
-		$container = new Container(
-			new ContainerId(2), 
-			ContainerType::Structure()
-		);
-
-		$choices_arr = array();
-
-		$steps_arr = [
-			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
-			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
-			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
-		];
-
-		$procedure = new Procedure(
-				new ProcedureId(1), 
-				new ContainerId(1), 
-				null, 
-				'this is the procedure title', 
-				$steps_arr, 
-				null,
-				$steps_arr[0],
-				ProcedureType::Numbering(),
-				new DepartmentId(1)
-			);
-
-		$comment = new Comment(
-			new CommentId(1),
-			new StepId(1), 
-			new PersonnelId(1), 
-			'this is the comment', 
-			new DateTime(), 
-			new DateTime()
-		);
-
-		$attachment = new Attachment(
-			new AttachmentId(1),
-			new StepId(1),
-			new PersonnelId(1),
-			'Attachment name...',
-			'base64',
-			new DateTime()
-		);
-
-		$container_repository = $this->createMock(IContainerRepository::class);
-		$container_repository->method('find')->willReturn($container);
-
-		$procedure_repository = $this->createMock(IProcedureRepository::class);
-		$procedure_repository->method('find')->willReturn($procedure);
-		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
-
-		$comment_repository = $this->createMock(ICommentRepository::class);
-		$comment_repository->method('find')->willReturn($comment);
-
-		$attachment_repository = $this->createMock(IAttachmentRepository::class);
-		$attachment_repository->method('find')->willReturn($attachment);
-
-		$identity_provider = $this->createMock(IIdentityProvider::class);
-		$identity_provider->method('identity')->willReturn(1);
-
-		$department_provider = $this->createMock(IDepartmentProvider::class);
-		$department_provider->method('department')->willReturn(1);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
-		);
+		$container = $this->container; 
+		$choices_arr = $this->choices_arr;
+		$steps_arr = $this->steps_arr;
+		$procedure = $this->procedure;
+		$comment = $this->comment;
+		$attachment = $this->attachment;
 		
-		$returned_procedure_id = $procedure_management_service->startProcedure(1,2);
+		$returned_procedure_id = $this->procedure_management_service->startProcedure(1,1,2);
 		$this->assertEquals($returned_procedure_id, 1);
 
 	}
@@ -231,6 +233,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -248,7 +253,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator, $procedure_repository , $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 		
 		$procedure_management_service->advanceProcedure(2,1,1);
@@ -256,73 +261,14 @@ class ProcedureManagementServiceTest extends TestCase{
 
 	public function test_If_cancelProcedure_Removes_Pointed_Procedure(){
 
-		$container = new Container(
-			new ContainerId(2), 
-			ContainerType::Structure()
-		);
+		$container = $this->container; 
+		$choices_arr = $this->choices_arr;
+		$steps_arr = $this->steps_arr;
+		$procedure = $this->procedure;
+		$comment = $this->comment;
+		$attachment = $this->attachment;
 
-		$choices_arr = array();
-
-		$steps_arr = [
-			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
-			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
-			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
-		];
-
-		$procedure = new Procedure(
-				new ProcedureId(1), 
-				new ContainerId(1), 
-				null, 
-				'this is the procedure title', 
-				$steps_arr, 
-				null,
-				$steps_arr[0],
-				ProcedureType::Numbering(),
-				new DepartmentId(1)
-			);
-
-		$comment = new Comment(
-			new CommentId(1),
-			new StepId(1), 
-			new PersonnelId(1), 
-			'this is the comment', 
-			new DateTime(), 
-			new DateTime()
-		);
-
-		$attachment = new Attachment(
-			new AttachmentId(1),
-			new StepId(1),
-			new PersonnelId(1),
-			'Attachment name...',
-			'base64',
-			new DateTime()
-		);
-
-		$container_repository = $this->createMock(IContainerRepository::class);
-		$container_repository->method('find')->willReturn($container);
-
-		$procedure_repository = $this->createMock(IProcedureRepository::class);
-		$procedure_repository->method('find')->willReturn($procedure);
-		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
-
-		$comment_repository = $this->createMock(ICommentRepository::class);
-		$comment_repository->method('find')->willReturn($comment);
-
-		$attachment_repository = $this->createMock(IAttachmentRepository::class);
-		$attachment_repository->method('find')->willReturn($attachment);
-
-		$identity_provider = $this->createMock(IIdentityProvider::class);
-		$identity_provider->method('identity')->willReturn(1);
-
-		$department_provider = $this->createMock(IDepartmentProvider::class);
-		$department_provider->method('department')->willReturn(1);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
-		);
-
-		$procedure_management_service->cancelProcedure(1);
+		$this->procedure_management_service->cancelProcedure(1);
 		
 		$confirm_false = $procedure->isComplete();
 		$this->assertFalse($confirm_false);
@@ -347,7 +293,8 @@ class ProcedureManagementServiceTest extends TestCase{
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(),  
 				null, 
 				'this is the procedure title', 
 				$steps_arr, 
@@ -378,6 +325,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -395,7 +345,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator, $procedure_repository , $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->cancelProcedure(1);
@@ -403,54 +353,13 @@ class ProcedureManagementServiceTest extends TestCase{
 
 	public function test_If_comment_Function_Creates_A_New_Comment_And_Return_Its_Id(){
 
-		$container = new Container(
-			new ContainerId(1), 
-			ContainerType::Structure()
-		);
-
-		$choices_arr = array(new Choice(
-				'comment_message',
-				new StepId(3),
-				null,
-				ChoiceType::Transition(),
-				1
-			) );
-
-		$steps_arr = [
-			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
-			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
-			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
-		];
-
-		$procedure = new Procedure(
-				new ProcedureId(1), 
-				new ContainerId(1), 
-				null, 
-				'this is the procedure title', 
-				$steps_arr, 
-				null,
-				$steps_arr[0],
-				ProcedureType::Numbering(),
-				new DepartmentId(1)
-			);
-
-		$comment = new Comment(
-			new CommentId(1),
-			new StepId(1), 
-			new PersonnelId(1), 
-			'this is the comment', 
-			new DateTime(), 
-			new DateTime()
-		);
-
-		$attachment = new Attachment(
-			new AttachmentId(1),
-			new StepId(1),
-			new PersonnelId(1),
-			'Attachment name...',
-			'base64',
-			new DateTime()
-		);
+		try{
+		$container = $this->container; 
+		$choices_arr = $this->choices_arr;
+		$steps_arr = $this->steps_arr;
+		$procedure = $this->procedure;
+		$comment = $this->comment;
+		$attachment = $this->attachment;
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -461,33 +370,19 @@ class ProcedureManagementServiceTest extends TestCase{
 			new DateTime
 		);
 
-		$container_repository = $this->createMock(IContainerRepository::class);
-		$container_repository->method('find')->willReturn($container);
+		$returned_comment_id = $this->procedure_management_service->comment(1,1,'msg');
 
-		$procedure_repository = $this->createMock(IProcedureRepository::class);
-		$procedure_repository->method('find')->willReturn($procedure);
-		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
+	} catch(ExceptionCollection $e){
 
-		$comment_repository = $this->createMock(ICommentRepository::class);
-		$comment_repository->method('stepExists')->willReturn(true);
-		$comment_repository->method('nextId')->willReturn(new CommentId(1));
+		 $exceptions = $e->getExceptions();
 
-		$attachment_repository = $this->createMock(IAttachmentRepository::class);
-		$attachment_repository->method('find')->willReturn($attachment);
+		  foreach ($exceptions as $exc) {
+			var_dump(get_class($exc));
+	     }
 
-		$identity_provider = $this->createMock(IIdentityProvider::class);
-		$identity_provider->method('identity')->willReturn(1);
-
-		$department_provider = $this->createMock(IDepartmentProvider::class);
-		$department_provider->method('department')->willReturn(1);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
-		);
-
-		$returned_comment_id = $procedure_management_service->comment(1,1,1);
-
+	}
 		$this->assertEquals($returned_comment_id, 1);
+	
 	}
 	
 
@@ -511,6 +406,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$procedure = new Procedure(
 				new ProcedureId(1), 
 				new ContainerId(1), 
+				ContainerType::Structure(),  
 				null, 
 				'this is the procedure title', 
 				$steps_arr, 
@@ -550,6 +446,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -568,7 +467,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator ,$procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$returned_comment_id = $procedure_management_service->comment(1,1,1);
@@ -595,6 +494,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$procedure = new Procedure(
 				new ProcedureId(1), 
 				new ContainerId(1), 
+				ContainerType::Structure(),  
 				null, 
 				'this is the procedure title', 
 				$steps_arr, 
@@ -625,6 +525,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -643,7 +546,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator ,$procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->editComment(1,1, 'this is the comment');
@@ -670,6 +573,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$procedure = new Procedure(
 				new ProcedureId(1), 
 				new ContainerId(1), 
+				ContainerType::Structure(),  
 				null, 
 				'this is the procedure title', 
 				$steps_arr, 
@@ -693,6 +597,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -711,7 +618,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator ,$procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->editComment(1,1, 'this is the comment');
@@ -738,6 +645,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$procedure = new Procedure(
 				new ProcedureId(1), 
 				new ContainerId(1), 
+				ContainerType::Structure(),  
 				null, 
 				'this is the procedure title', 
 				$steps_arr, 
@@ -768,6 +676,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -786,7 +697,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator ,$procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->editComment(1,1, 'this is the comment');
@@ -813,6 +724,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$procedure = new Procedure(
 				new ProcedureId(1), 
 				new ContainerId(1), 
+				ContainerType::Structure(),  
 				null, 
 				'this is the procedure title', 
 				$steps_arr, 
@@ -843,6 +755,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -861,7 +776,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator ,$procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->removeComment(1);
@@ -870,54 +785,12 @@ class ProcedureManagementServiceTest extends TestCase{
 
 	public function test_If_addAttachment_Creates_A_New_Attachment_And_Return_Its_Id(){
 
-		$container = new Container(
-			new ContainerId(2), 
-			ContainerType::Structure()
-		);
-
-		$choices_arr = array(new Choice(
-				'comment_message',
-				new StepId(3),
-				null,
-				ChoiceType::Transition(),
-				1
-			) );
-
-		$steps_arr = [
-			new Step(new StepId(1),'this is first title',true, true, $choices_arr, null, 1), 
-			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1),
-			new Step(new StepId(3), 'this is third title',true,false, $choices_arr, null, 1) 			
-		];
-
-		$procedure = new Procedure(
-				new ProcedureId(1), 
-				new ContainerId(1), 
-				null, 
-				'this is the procedure title', 
-				$steps_arr, 
-				null,
-				$steps_arr[0],
-				ProcedureType::Numbering(),
-				new DepartmentId(1)
-			);
-
-		$comment = new Comment(
-			new CommentId(1),
-			new StepId(1), 
-			new PersonnelId(1), 
-			'this is the comment', 
-			new DateTime(), 
-			new DateTime()
-		);
-
-		$attachment = new Attachment(
-			new AttachmentId(1),
-			new StepId(1),
-			new PersonnelId(1),
-			'Attachment name...',
-			'base64',
-			new DateTime()
-		);
+		$container = $this->container; 
+		$choices_arr = $this->choices_arr;
+		$steps_arr = $this->steps_arr;
+		$procedure = $this->procedure;
+		$comment = $this->comment;
+		$attachment = $this->attachment;
 
 		$comment = new Comment(
 			new CommentId(1),
@@ -928,32 +801,7 @@ class ProcedureManagementServiceTest extends TestCase{
 			new DateTime
 		);
 
-		$container_repository = $this->createMock(IContainerRepository::class);
-		$container_repository->method('find')->willReturn($container);
-
-		$procedure_repository = $this->createMock(IProcedureRepository::class);
-		$procedure_repository->method('find')->willReturn($procedure);
-		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
-
-		$comment_repository = $this->createMock(ICommentRepository::class);
-		$comment_repository->method('stepExists')->willReturn(true);
-		$comment_repository->method('nextId')->willReturn(new CommentId(1));
-
-		$attachment_repository = $this->createMock(IAttachmentRepository::class);
-		$attachment_repository->method('find')->willReturn($attachment);
-		$attachment_repository->method('nextId')->willReturn(new AttachmentId(1));
-
-		$identity_provider = $this->createMock(IIdentityProvider::class);
-		$identity_provider->method('identity')->willReturn(1);
-
-		$department_provider = $this->createMock(IDepartmentProvider::class);
-		$department_provider->method('department')->willReturn(1);
-
-		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
-		);	
-
-		$returned_attachment_id = $procedure_management_service->addAttachment(1,1,'base64', 'attachment_name');
+		$returned_attachment_id = $this->procedure_management_service->addAttachment(1,1,'base64', 'attachment_name');
 		$this->assertEquals($returned_attachment_id, 1);
 
 	} 
@@ -979,6 +827,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$procedure = new Procedure(
 				new ProcedureId(1), 
 				new ContainerId(1), 
+				ContainerType::Structure(),  
 				null, 
 				'this is the procedure title', 
 				$steps_arr, 
@@ -1009,6 +858,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -1027,7 +879,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator ,$procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 	
 		$procedure_management_service->addAttachment(1,1,'base64', 'attachment-name');
@@ -1053,6 +905,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$procedure = new Procedure(
 				new ProcedureId(1), 
 				new ContainerId(1), 
+				ContainerType::Structure(),  
 				null, 
 				'this is the procedure title', 
 				$steps_arr, 
@@ -1083,6 +936,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -1101,7 +957,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator ,$procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->removeAttachment(1);
@@ -1127,6 +983,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$procedure = new Procedure(
 				new ProcedureId(1), 
 				new ContainerId(1), 
+				ContainerType::Structure(),  
 				null, 
 				'this is the procedure title', 
 				$steps_arr, 
@@ -1150,6 +1007,9 @@ class ProcedureManagementServiceTest extends TestCase{
 		$container_repository = $this->createMock(IContainerRepository::class);
 		$container_repository->method('find')->willReturn($container);
 
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = $this->createMock(IProcedureRepository::class);
 		$procedure_repository->method('find')->willReturn($procedure);
 		$procedure_repository->method('nextProcedureId')->willReturn(new ProcedureId(1));
@@ -1168,7 +1028,7 @@ class ProcedureManagementServiceTest extends TestCase{
 		$department_provider->method('department')->willReturn(1);
 
 		$procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
+			$container_repository, $container_validator ,$procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider
 		);
 
 		$procedure_management_service->removeAttachment(1);
