@@ -7,6 +7,7 @@ use \model\ProcedureManagement\infrastructure\ProcedureRepository;
 use \model\ProcedureManagement\infrastructure\CommentRepository;
 use \model\ProcedureManagement\infrastructure\AttachmentRepository;
 use \model\ProcedureManagement\application\IDepartmentProvider;
+use \model\ProcedureManagement\application\IContainerValidator;
 
 use \model\ProcedureManagement\infrastructure\FileLocator;
 use \model\ProcedureManagement\infrastructure\IdentityProvider;
@@ -43,7 +44,7 @@ class ProcedureManagementServiceDbTest extends TestCase{
 	}	
 
 	protected function setUp() : void {
-
+		
 		$identity_provider = new IdentityProvider(1);
 
 		$file_locator = new FileLocator('./role_root_dir/');
@@ -57,11 +58,15 @@ class ProcedureManagementServiceDbTest extends TestCase{
 		);
 
 		$container_repository = new ContainerRepository(self::$db);
+
+		$container_validator = $this->createMock(IContainerValidator::class);
+		$container_validator->method('containerExists')->willReturn(true);
+
 		$procedure_repository = new ProcedureRepository(self::$db, null);
 		$comment_repository = new CommentRepository(self::$db, null);
 
 		$this->procedure_management_service = new ProcedureManagementService(
-			$container_repository, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider_service
+			$container_repository, $container_validator, $procedure_repository, $comment_repository, $attachment_repository, $identity_provider, $department_provider_service
 		);
 	}
 
@@ -72,7 +77,7 @@ class ProcedureManagementServiceDbTest extends TestCase{
 			'type' => 1
 		));
 
-		$returned_id = $this->procedure_management_service->startProcedure(1,2);	
+		$returned_id = $this->procedure_management_service->startProcedure(1,1,1);	
 
 		$id_from_db = self::$db->query("SELECT * FROM `procedure` WHERE id = :id", array(
 			':id' => $returned_id
@@ -81,11 +86,21 @@ class ProcedureManagementServiceDbTest extends TestCase{
 		$this->assertEquals($returned_id, $id_from_db);
 	}
 
+	public function test_startProcedure_Method_Creates_A_New_Container_With_Given_Id_If_It_Doesnt_Exist_Already(){
+
+		$this->procedure_management_service->startProcedure(12,1,1);
+
+		$new_container_id = self::$db->query("SELECT * FROM container WHERE id = 12")->row['id'];
+
+		$this->assertEquals($new_container_id, 12);
+	}
+
 	public function test_If_advanceProcedure_Completes_The_Procedure_Step(){
 
 		self::$db->insert('procedure', array(
 			'id' => 1,
 			'container_id' => 1,
+			'container_type' => 1,
 			'initiator_id' => null,
 			'title' => 'SD',
 			'type' => 2,
@@ -127,6 +142,7 @@ class ProcedureManagementServiceDbTest extends TestCase{
 		self::$db->insert('procedure', array(
 			'id' => 2,
 			'container_id' => 1,
+			'container_type' => 1,
 			'initiator_id' => null,
 			'title' => 'procedure to be deleted',
 			'type' => 2,
@@ -184,6 +200,7 @@ class ProcedureManagementServiceDbTest extends TestCase{
 		self::$db->insert('procedure', array(
 			'id' => 2,
 			'container_id' => 1,
+			'container_type' => 1,
 			'initiator_id' => null,
 			'title' => 'procedure title_2',
 			'type' => 2,
@@ -227,6 +244,7 @@ class ProcedureManagementServiceDbTest extends TestCase{
 		self::$db->insert('procedure', array(
 			'id' => 3,
 			'container_id' => 1,
+			'container_type' => 1,
 			'initiator_id' => null,
 			'title' => 'procedure title_3',
 			'type' => 2,
@@ -264,6 +282,7 @@ class ProcedureManagementServiceDbTest extends TestCase{
 		self::$db->insert('procedure', array(
 			'id' => 4,
 			'container_id' => 1,
+			'container_type' => 1,
 			'initiator_id' => null,
 			'title' => 'finalll',
 			'type' => 2,
@@ -312,12 +331,12 @@ class ProcedureManagementServiceDbTest extends TestCase{
 			'number' => 4 
 		));
 
-		$this->procedure_management_service->advanceSubprocedure(1,4,7,4); /*containerid, procedureid, subprocedureid, choice */
+		$this->procedure_management_service->advanceSubprocedure(4,7,4); /*containerid, procedureid, subprocedureid, choice */
 
-		$result = self::$db->query("SELECT is_complete FROM step WHERE id = 4");
-		$convert = json_decode(json_encode($result), true);
-
-		$this->assertEquals( $convert['row']['is_complete'] , 1 ); 
+		$query_result = self::$db->query("SELECT is_complete FROM step WHERE id = 4")->row['is_complete'];
+			
+		$this->assertEquals(1, $query_result);
+		
 	}
 
 	// private function throwFromExceptionCollection($exception_collection, $exception) {
