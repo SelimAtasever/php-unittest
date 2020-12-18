@@ -15,9 +15,12 @@ use \model\ProcedureManagement\domain\model\AttachmentId;
 use \model\ProcedureManagement\domain\model\Choice;
 use \model\ProcedureManagement\domain\model\ChoiceType;
 use \model\ProcedureManagement\domain\model\Subprocedure;
+use \model\ProcedureManagement\domain\model\ContainerType;
+
 use \model\ProcedureManagement\domain\model\exception\StepNotFoundException;
 use \model\ProcedureManagement\domain\model\exception\PersonnelNotAuthorizedException;
 use \model\ProcedureManagement\domain\model\exception\ProcedureConcludedException;
+use \model\ProcedureManagement\domain\model\exception\ProcedureDescriptionLenghtException;
 
 use PHPUnit\Framework\TestCase;
 
@@ -37,9 +40,11 @@ class ProcedureTest extends TestCase {
 		];
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the procedure title', 
+				'description',
 				$steps_arr, 
 				null,
 				$steps_arr[0],
@@ -65,9 +70,11 @@ class ProcedureTest extends TestCase {
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the procedure title', 
+				'description',
 				$steps_arr, 
 				null,
 				$steps_arr[0],
@@ -89,9 +96,11 @@ class ProcedureTest extends TestCase {
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the procedure title', 
+				'description',
 				$steps_arr, 
 				null,
 				$steps_arr[0],
@@ -113,9 +122,11 @@ class ProcedureTest extends TestCase {
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the procedure title', 
+				'description',
 				$steps_arr, 
 				null,
 				$steps_arr[0],
@@ -136,9 +147,11 @@ class ProcedureTest extends TestCase {
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the procedure title', 
+				'description',
 				$steps_arr, 
 				null,
 				$steps_arr[0],
@@ -170,9 +183,11 @@ class ProcedureTest extends TestCase {
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the procedure title', 
+				'description',
 				$steps_arr, 
 				null,
 				$steps_arr[2],
@@ -182,7 +197,7 @@ class ProcedureTest extends TestCase {
 
 		$procedure->advance(3, new DepartmentId(1));
 
-		$steps_of_procedure = $procedure->steps();	//only step 3 will return true because advance will return true by order. 
+		$steps_of_procedure = $procedure->steps();	//only step id(3) will return true because advance will return true by order. 
 
 		$confirm_stepthree_completed = $steps_of_procedure[2]->isComplete(); 	
 		$this->assertTrue($confirm_stepthree_completed);
@@ -224,10 +239,12 @@ class ProcedureTest extends TestCase {
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the parent procedure title', 
-				null, 
+				'description',
+				$steps_arr, 
 				$subprocedure_arr,
 				null,
 				ProcedureType::Numbering(),
@@ -269,10 +286,12 @@ class ProcedureTest extends TestCase {
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the parent procedure title', 
-				null, 
+				'description',
+				$steps_arr, 
 				$subprocedure_arr,
 				null,
 				ProcedureType::Numbering(),
@@ -319,16 +338,18 @@ class ProcedureTest extends TestCase {
 				new ProcedureId(1), 	 /* parent id */
 				'subprocedure_title',
 				$steps_arr,
-				$steps_arr[2], 			/* current step */
+				$steps_arr[2], 			 /* current step */
 				true
 		));
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the parent procedure title', 
-				null, 
+				'description',
+				$steps_arr, 
 				$subprocedure_arr,
 				null,
 				ProcedureType::Numbering(),
@@ -366,9 +387,11 @@ class ProcedureTest extends TestCase {
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the procedure title', 
+				'description',
 				$steps_arr, 
 				null,
 				null,
@@ -406,9 +429,11 @@ class ProcedureTest extends TestCase {
 
 		$procedure = new Procedure(
 				new ProcedureId(1), 
-				new ContainerId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
 				null, 
 				'this is the procedure title', 
+				'description',
 				$steps_arr, 
 				null,
 				null,
@@ -422,6 +447,105 @@ class ProcedureTest extends TestCase {
 
 		$confirm_stepthree_completed = $steps_of_procedure[0]->isComplete(); 	
 		$this->assertTrue($confirm_stepthree_completed);
+	}
+
+	public function test_If_changeDescription_Changes_Existing_Description_Of_Procedure(){
+
+		$choices_arr = array();
+		$steps_arr = [
+			new Step(new StepId(2), 'this is second title',true, false, $choices_arr, null, 1),
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1)
+		];
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
+				null, 
+				'this is the procedure title', 
+				'description',
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+		);
+
+		$procedure->changeDescription('prometheus');
+
+		$this->assertNotEquals($procedure->description(), 'description');
+		$this->assertEquals($procedure->description(), 'prometheus');
+	}
+
+	public function test_changeDescription_Throws_Exception_If_Description_Lenght_Is_Lower_Than_2(){
+
+		$this->expectException(ProcedureDescriptionLenghtException::class);
+		
+		$choices_arr = array();
+		$steps_arr = [
+			new Step(new StepId(2), 'this is second title',true, false, $choices_arr, null, 1),
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1)
+		];
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
+				null, 
+				'this is the procedure title', 
+				'description',
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+		);
+
+		$procedure->changeDescription('p');
+
+		$exception_array = $procedure->exceptions();
+
+		foreach ($exception_array as $exception) {
+			if(get_class($exception) == ProcedureDescriptionLenghtException::class)
+				throw new ProcedureDescriptionLenghtException();
+		}
+
+	}
+
+
+	public function test_changeDescription_Throws_Exception_If_Description_Lenght_Is_Longer_Than_256(){
+
+		$this->expectException(ProcedureDescriptionLenghtException::class);
+		
+		$choices_arr = array();
+		$steps_arr = [
+			new Step(new StepId(2), 'this is second title',true, false, $choices_arr, null, 1),
+			new Step(new StepId(2), 'this is second title',true, true, $choices_arr, null, 1)
+		];
+
+		$procedure = new Procedure(
+				new ProcedureId(1), 
+				new ContainerId(1),
+				ContainerType::Structure(), 
+				null, 
+				'this is the procedure title', 
+				'description',
+				$steps_arr, 
+				null,
+				$steps_arr[0],
+				ProcedureType::Numbering(),
+				new DepartmentId(1)
+		);
+
+		$procedure->changeDescription(str_repeat('a', 257));
+
+		$exception_array = $procedure->exceptions();
+
+		foreach ($exception_array as $exception) {
+			if(get_class($exception) == ProcedureDescriptionLenghtException::class)
+				throw new ProcedureDescriptionLenghtException();
+		}
+
 	}
 }
 
