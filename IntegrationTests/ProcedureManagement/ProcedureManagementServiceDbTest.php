@@ -11,6 +11,7 @@ use \model\ProcedureManagement\application\IContainerValidator;
 
 use \model\ProcedureManagement\infrastructure\FileLocator;
 use \model\ProcedureManagement\infrastructure\IdentityProvider;
+use \model\ProcedureManagement\domain\model\exception\ProcedureDescriptionLenghtException;
 
 use \model\common\ExceptionCollection;
 
@@ -77,7 +78,7 @@ class ProcedureManagementServiceDbTest extends TestCase{
 			'type' => 1
 		));
 
-		$returned_id = $this->procedure_management_service->startProcedure(1,1,1);	
+		$returned_id = $this->procedure_management_service->startProcedure(1,1,1,'description I');	
 
 		$id_from_db = self::$db->query("SELECT * FROM `procedure` WHERE id = :id", array(
 			':id' => $returned_id
@@ -88,7 +89,7 @@ class ProcedureManagementServiceDbTest extends TestCase{
 
 	public function test_startProcedure_Method_Creates_A_New_Container_With_Given_Id_If_It_Doesnt_Exist_Already(){
 
-		$this->procedure_management_service->startProcedure(12,1,1);
+		$this->procedure_management_service->startProcedure(12,1,1, 'description II');
 
 		$new_container_id = self::$db->query("SELECT * FROM container WHERE id = 12")->row['id'];
 
@@ -339,13 +340,47 @@ class ProcedureManagementServiceDbTest extends TestCase{
 		
 	}
 
-	// private function throwFromExceptionCollection($exception_collection, $exception) {
-	// 	foreach($exception_collection->getExceptions() as $e) {
-	// 		if(get_class($e) == $exception) {
-	// 			throw new $exception;
-	// 		}
-	// 	}
-	// }
+	public function test_If_changeDescription_Changes_Existing_Procedure_Description_From_Db(){
+		$this->procedure_management_service->changeDescription(1, 'NEW DESC');
+
+		$query = self::$db->query("SELECT * FROM `procedure` WHERE id = :id", array(
+			':id' => 1
+
+		))->row['description'];
+		$this->assertEquals($query, 'NEW DESC');
+	}
+
+	public function test_If_changeDescription_Throws_An_Exception_If_Description_Is_Lower_Than_2(){
+		$this->expectException(ProcedureDescriptionLenghtException::class);
+
+		try{
+
+			$this->procedure_management_service->changeDescription(2, 'Q');	
+
+		} catch(ExceptionCollection $e){
+			$this->throwFromExceptionCollection($e, ProcedureDescriptionLenghtException::class);
+		}  
+	}
+
+	public function test_If_changeDescription_Throws_An_Exception_If_Description_Is_Longer_Than_256(){
+		$this->expectException(ProcedureDescriptionLenghtException::class);
+
+		try{
+
+			$this->procedure_management_service->changeDescription(2, str_repeat('T', 257));	
+
+		} catch(ExceptionCollection $e){
+			$this->throwFromExceptionCollection($e, ProcedureDescriptionLenghtException::class);
+		}  
+	}
+
+	private function throwFromExceptionCollection($exception_collection, $exception) {
+		foreach($exception_collection->getExceptions() as $e) {
+			if(get_class($e) == $exception) {
+				throw new $exception;
+			}
+		}
+	}
 
 }
 
